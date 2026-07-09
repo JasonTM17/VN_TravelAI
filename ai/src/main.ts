@@ -9,6 +9,7 @@ import { loadConfig } from "./config.js";
 import { createAuthGuard } from "./lib/auth.js";
 import { callN8nWebhook } from "./lib/n8n.js";
 import { degradedChatReply, degradedItinerary } from "./lib/degraded.js";
+import { requireHmac } from "./lib/hmac-guard.js";
 
 const chatSchema = z.object({
   message: z.string().min(1).max(4000),
@@ -65,6 +66,14 @@ async function main() {
   });
 
   const requireAuth = createAuthGuard(config);
+
+  // Inbound signed webhook probe (n8n → ai or partner) — rejects invalid HMAC with 401
+  app.post("/v1/hooks/n8n-callback", async (req, reply) => {
+    const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {});
+    const sig = (req.headers["x-signature-sha256"] as string | undefined) ?? "";
+    if (!requireHmac(config.N8N_HMAC_SECRET, raw, sig, reply)) return;
+    return { success: true, data: { accepted: true } };
+  });
 
   app.post("/v1/chat", async (req, reply) => {
     const user = await requireAuth(req, reply);
