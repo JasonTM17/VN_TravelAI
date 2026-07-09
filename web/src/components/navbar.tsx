@@ -25,6 +25,7 @@ export function Navbar({ locale }: { locale: Locale }) {
     { href: `/${locale}/hotels`, label: t.nav.hotels },
     { href: `/${locale}/flights`, label: t.nav.flights },
     { href: `/${locale}/tours`, label: t.nav.tours },
+    { href: `/${locale}/transport`, label: locale === "en" ? "Transport" : "Xe/Tàu" },
     { href: `/${locale}/ai`, label: t.nav.ai },
   ];
 

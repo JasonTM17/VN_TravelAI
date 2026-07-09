@@ -222,6 +222,82 @@ export async function catalogRoutes(app: FastifyInstance, meili: MeiliSearch) {
     };
   });
 
+  app.get("/v1/transports", async (req) => {
+    const q = req.query as {
+      from?: string;
+      to?: string;
+      mode?: string;
+      q?: string;
+      page?: string;
+      limit?: string;
+    };
+    const page = Math.max(1, Number(q.page ?? 1));
+    const limit = Math.min(50, Math.max(1, Number(q.limit ?? 20)));
+    const where: Record<string, unknown> = {};
+    if (q.from) where.fromCode = q.from.toUpperCase();
+    if (q.to) where.toCode = q.to.toUpperCase();
+    if (q.mode === "bus" || q.mode === "train") where.mode = q.mode;
+    if (q.q) {
+      where.OR = [
+        { fromCity: { contains: q.q, mode: "insensitive" } },
+        { toCity: { contains: q.q, mode: "insensitive" } },
+        { operator: { contains: q.q, mode: "insensitive" } },
+      ];
+    }
+    const [total, rows] = await Promise.all([
+      prisma.transport.count({ where }),
+      prisma.transport.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { priceVnd: "asc" },
+      }),
+    ]);
+    return {
+      success: true,
+      data: rows.map((t) => ({
+        id: t.id,
+        slug: t.slug,
+        operator: t.operator,
+        mode: t.mode,
+        from: t.fromCode,
+        to: t.toCode,
+        fromCity: t.fromCity,
+        toCity: t.toCity,
+        departAt: t.departAt,
+        arriveAt: t.arriveAt,
+        priceVnd: t.priceVnd,
+        durationMin: t.durationMin,
+        seatsLeft: t.seatsLeft,
+      })),
+      meta: pageMeta(page, limit, total),
+    };
+  });
+
+  app.get("/v1/transports/:slug", async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const row = await prisma.transport.findUnique({ where: { slug } });
+    if (!row) return sendProblem(reply, 404, "Not found", "Transport not found");
+    return {
+      success: true,
+      data: {
+        id: row.id,
+        slug: row.slug,
+        operator: row.operator,
+        mode: row.mode,
+        from: row.fromCode,
+        to: row.toCode,
+        fromCity: row.fromCity,
+        toCity: row.toCity,
+        departAt: row.departAt,
+        arriveAt: row.arriveAt,
+        priceVnd: row.priceVnd,
+        durationMin: row.durationMin,
+        seatsLeft: row.seatsLeft,
+      },
+    };
+  });
+
   app.get("/v1/search", async (req, reply) => {
     const q = req.query as { q?: string };
     if (!q.q?.trim()) {

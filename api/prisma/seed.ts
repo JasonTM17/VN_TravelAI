@@ -278,6 +278,7 @@ async function main() {
   await prisma.hotel.deleteMany();
   await prisma.tour.deleteMany();
   await prisma.flight.deleteMany();
+  await prisma.transport.deleteMany();
   await prisma.destination.deleteMany();
 
   const destRows = [];
@@ -392,12 +393,62 @@ async function main() {
     }
   }
 
+  const transportRoutes: Array<{
+    mode: "bus" | "train";
+    operator: string;
+    fromCity: string;
+    toCity: string;
+    fromCode: string;
+    toCode: string;
+    hours: number;
+    price: number;
+  }> = [
+    { mode: "train", operator: "Đường sắt Việt Nam", fromCity: "Hà Nội", toCity: "Đà Nẵng", fromCode: "HAN", toCode: "DAD", hours: 15, price: 650_000 },
+    { mode: "train", operator: "Đường sắt Việt Nam", fromCity: "Hà Nội", toCity: "TP.HCM", fromCode: "HAN", toCode: "SGN", hours: 32, price: 1_100_000 },
+    { mode: "train", operator: "Đường sắt Việt Nam", fromCity: "Đà Nẵng", toCity: "TP.HCM", fromCode: "DAD", toCode: "SGN", hours: 16, price: 720_000 },
+    { mode: "train", operator: "SE Express", fromCity: "Hà Nội", toCity: "Huế", fromCode: "HAN", toCode: "HUI", hours: 12, price: 580_000 },
+    { mode: "bus", operator: "Phương Trang", fromCity: "TP.HCM", toCity: "Đà Lạt", fromCode: "SGN", toCode: "DLI", hours: 7, price: 280_000 },
+    { mode: "bus", operator: "Phương Trang", fromCity: "TP.HCM", toCity: "Nha Trang", fromCode: "SGN", toCode: "CXR", hours: 8, price: 320_000 },
+    { mode: "bus", operator: "Hoàng Long", fromCity: "Hà Nội", toCity: "Hạ Long", fromCode: "HAN", toCode: "VDO", hours: 3, price: 150_000 },
+    { mode: "bus", operator: "Mai Linh", fromCity: "Đà Nẵng", toCity: "Hội An", fromCode: "DAD", toCode: "HOI", hours: 1, price: 80_000 },
+    { mode: "bus", operator: "Kumho Samco", fromCity: "TP.HCM", toCity: "Cần Thơ", fromCode: "SGN", toCode: "VCA", hours: 4, price: 180_000 },
+    { mode: "bus", operator: "Sapa Express", fromCity: "Hà Nội", toCity: "Sa Pa", fromCode: "HAN", toCode: "SPA", hours: 6, price: 350_000 },
+  ];
+
+  let transportCount = 0;
+  for (let day = 0; day < 7; day++) {
+    for (const [idx, r] of transportRoutes.entries()) {
+      const depart = new Date(base);
+      depart.setDate(base.getDate() + day);
+      depart.setHours(6 + (idx % 4) * 3, 0, 0, 0);
+      const arrive = new Date(depart.getTime() + r.hours * 60 * 60 * 1000);
+      await prisma.transport.create({
+        data: {
+          slug: `${r.mode}-${r.fromCode}-${r.toCode}-d${day}-s${idx}`,
+          operator: r.operator,
+          mode: r.mode,
+          fromCity: r.fromCity,
+          toCity: r.toCity,
+          fromCode: r.fromCode,
+          toCode: r.toCode,
+          departAt: depart,
+          arriveAt: arrive,
+          priceVnd: r.price + day * 10_000,
+          durationMin: r.hours * 60,
+          seatsLeft: 20 + ((day + idx) % 20),
+        },
+      });
+      transportCount++;
+    }
+  }
+
   console.log(
     JSON.stringify({
       destinations: destRows.length,
       hotels: hotelCount,
       tours: tourCount,
       flights: flightCount,
+      transports: transportCount,
     }),
   );
 }

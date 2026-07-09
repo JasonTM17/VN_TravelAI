@@ -84,6 +84,32 @@ model Flight {
   @@map("flights")
 }
 
+enum TransportMode {
+  bus
+  train
+}
+
+model Transport {
+  id          String        @id @default(uuid()) @db.Uuid
+  slug        String        @unique
+  operator    String
+  mode        TransportMode
+  fromCity    String        @map("from_city")
+  toCity      String        @map("to_city")
+  fromCode    String        @map("from_code")
+  toCode      String        @map("to_code")
+  departAt    DateTime      @map("depart_at")
+  arriveAt    DateTime      @map("arrive_at")
+  priceVnd    Int           @map("price_vnd")
+  durationMin Int           @map("duration_min")
+  seatsLeft   Int           @default(40) @map("seats_left")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@index([fromCode, toCode])
+  @@index([mode])
+  @@map("transports")
+}
+
 model Review {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String?  @map("user_id") @db.Uuid

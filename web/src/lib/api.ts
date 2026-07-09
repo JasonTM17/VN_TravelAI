@@ -47,6 +47,13 @@ export const api = {
       API_URL,
       `/v1/flights/search?from=${from}&to=${to}&date=${date}`,
     ),
+  listTransports: (params: Record<string, string | number | undefined> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    });
+    return request<ApiEnvelope<Transport[]>>(API_URL, `/v1/transports?${qs}`);
+  },
   search: (q: string) => request<ApiEnvelope<SearchResult>>(API_URL, `/v1/search?q=${encodeURIComponent(q)}`),
   login: (email: string, password: string) =>
     request<ApiEnvelope<AuthData>>(IDENTITY_URL, "/v1/auth/login", {
@@ -159,6 +166,22 @@ export type Flight = {
   arriveAt: string;
   priceVnd: number;
   cabin: string;
+};
+
+export type Transport = {
+  id: string;
+  slug: string;
+  operator: string;
+  mode: "bus" | "train";
+  from: string;
+  to: string;
+  fromCity: string;
+  toCity: string;
+  departAt: string;
+  arriveAt: string;
+  priceVnd: number;
+  durationMin: number;
+  seatsLeft: number;
 };
 
 export type User = { id: string; email: string; fullName: string };

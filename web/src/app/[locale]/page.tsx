@@ -27,7 +27,7 @@ export default async function HomePage({
     { key: "hotels", href: `/${locale}/hotels`, img: "/images/categories/hotels.jpg", label: t.nav.hotels },
     { key: "flights", href: `/${locale}/flights`, img: "/images/categories/flights.jpg", label: t.nav.flights },
     { key: "tours", href: `/${locale}/tours`, img: "/images/categories/tours.jpg", label: t.nav.tours },
-    { key: "transport", href: `/${locale}/explore`, img: "/images/categories/transport.jpg", label: "Transport" },
+    { key: "transport", href: `/${locale}/transport`, img: "/images/categories/transport.jpg", label: locale === "en" ? "Transport" : "Xe / Tàu" },
   ];
 
   return (

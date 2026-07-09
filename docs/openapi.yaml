@@ -24,6 +24,7 @@ tags:
   - name: hotels
   - name: tours
   - name: flights
+  - name: transport
   - name: bookings
   - name: wishlists
   - name: ai
@@ -420,6 +421,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FlightListResponse"
+
+  /v1/transports:
+    get:
+      tags: [transport]
+      summary: Search mock bus/train routes
+      operationId: searchTransports
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [bus, train]
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransportListResponse"
+
+  /v1/transports/{slug}:
+    get:
+      tags: [transport]
+      summary: Transport route detail
+      operationId: getTransport
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+      responses:
+        "200":
+          description: OK
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /v1/bookings:
     get:
@@ -959,6 +1014,52 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Flight"
+
+    Transport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        operator:
+          type: string
+        mode:
+          type: string
+          enum: [bus, train]
+        from:
+          type: string
+        to:
+          type: string
+        fromCity:
+          type: string
+        toCity:
+          type: string
+        departAt:
+          type: string
+          format: date-time
+        arriveAt:
+          type: string
+          format: date-time
+        priceVnd:
+          type: integer
+        durationMin:
+          type: integer
+        seatsLeft:
+          type: integer
+
+    TransportListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transport"
+        meta:
+          $ref: "#/components/schemas/PageMeta"
 
     CreateBookingRequest:
       type: object
