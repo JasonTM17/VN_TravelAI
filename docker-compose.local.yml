@@ -1,32 +1,33 @@
 # Port remaps to avoid conflicts with other local projects (e.g. FoodFlow).
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+# Requires Compose that supports !override for sequence fields.
 
 services:
   postgres:
-    ports:
+    ports: !override
       - "55432:5432"
   redis:
-    ports:
+    ports: !override
       - "56379:6379"
   meilisearch:
-    ports:
+    ports: !override
       - "57700:7700"
   minio:
-    ports:
+    ports: !override
       - "59000:9000"
       - "59001:9001"
   n8n:
-    ports:
+    ports: !override
       - "55678:5678"
   identity:
-    ports:
+    ports: !override
       - "53002:3002"
   api:
-    ports:
+    ports: !override
       - "53001:3001"
   ai:
-    ports:
+    ports: !override
       - "53003:3003"
   web:
-    ports:
+    ports: !override
       - "53000:3000"
