@@ -1,5 +1,5 @@
 import { Breadcrumb } from "@/components/breadcrumb";
-import { EmptyState } from "@/components/ui/empty-state";
+import { WishlistClient } from "@/components/wishlist-client";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
 
 export default async function WishlistPage({
@@ -17,13 +17,8 @@ export default async function WishlistPage({
       <h1 className="animate-fade-in-up text-3xl font-bold">
         <span className="gradient-text">{t.nav.wishlist}</span>
       </h1>
-      <div className="mt-8">
-        <EmptyState
-          title={t.empty.title}
-          description="Wishlist API is ready on backend — save hotels from detail pages in a follow-up polish."
-          ctaHref={`/${locale}/hotels`}
-          ctaLabel={t.nav.hotels}
-        />
+      <div className="mt-6">
+        <WishlistClient locale={locale} />
       </div>
     </div>
   );

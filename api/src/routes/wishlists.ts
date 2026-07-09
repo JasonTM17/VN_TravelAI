@@ -20,7 +20,50 @@ export async function wishlistRoutes(
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
     });
-    return { success: true, data: rows };
+
+    const data = await Promise.all(
+      rows.map(async (row) => {
+        let title = row.itemId;
+        let slug: string | null = null;
+        let priceFromVnd: number | null = null;
+        let hrefKind: "hotel" | "tour" | "destination" = row.itemType;
+
+        if (row.itemType === "hotel") {
+          const h = await prisma.hotel.findUnique({ where: { id: row.itemId } });
+          if (h) {
+            title = h.name;
+            slug = h.slug;
+            priceFromVnd = h.priceFromVnd;
+          }
+        } else if (row.itemType === "tour") {
+          const t = await prisma.tour.findUnique({ where: { id: row.itemId } });
+          if (t) {
+            title = t.titleVi;
+            slug = t.slug;
+            priceFromVnd = t.priceFromVnd;
+          }
+        } else if (row.itemType === "destination") {
+          const d = await prisma.destination.findUnique({ where: { id: row.itemId } });
+          if (d) {
+            title = d.nameVi;
+            slug = d.slug;
+          }
+        }
+
+        return {
+          id: row.id,
+          itemType: row.itemType,
+          itemId: row.itemId,
+          title,
+          slug,
+          priceFromVnd,
+          hrefKind,
+          createdAt: row.createdAt,
+        };
+      }),
+    );
+
+    return { success: true, data };
   });
 
   app.post("/v1/wishlists", async (req, reply) => {

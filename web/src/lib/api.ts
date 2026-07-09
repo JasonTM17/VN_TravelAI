@@ -114,6 +114,24 @@ export const api = {
       headers: { authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     }),
+  listWishlist: (token: string) =>
+    request<ApiEnvelope<WishlistItem[]>>(API_URL, "/v1/wishlists", {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+  addWishlist: (
+    token: string,
+    body: { itemType: "hotel" | "tour" | "destination"; itemId: string },
+  ) =>
+    request<ApiEnvelope<WishlistItem>>(API_URL, "/v1/wishlists", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    }),
+  removeWishlist: (token: string, id: string) =>
+    request<void>(API_URL, `/v1/wishlists/${id}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    }),
 };
 
 export type Destination = {
@@ -231,4 +249,15 @@ export type Itinerary = {
   estimatedBudgetVnd: number;
   hotelSuggestions?: Array<{ slug: string; name: string }>;
   degraded?: boolean;
+};
+
+export type WishlistItem = {
+  id: string;
+  itemType: "hotel" | "tour" | "destination";
+  itemId: string;
+  title?: string;
+  slug?: string | null;
+  priceFromVnd?: number | null;
+  hrefKind?: "hotel" | "tour" | "destination";
+  createdAt?: string;
 };

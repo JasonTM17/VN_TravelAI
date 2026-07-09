@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
 import { BookButton } from "@/components/book-button";
+import { WishlistButton } from "@/components/wishlist-button";
 import { api } from "@/lib/api";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
 
@@ -70,14 +71,12 @@ export default async function HotelDetailPage({
               </span>
             ))}
           </div>
-          <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card p-4 shadow-elevated">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-elevated">
             <PriceTag amount={hotel.priceFromVnd} prefix={t.common.from} suffix={`/${t.common.night}`} locale={locale} />
-            <BookButton
-              locale={locale}
-              itemType="hotel"
-              itemId={hotel.id}
-              label={t.common.book}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <WishlistButton locale={locale} itemType="hotel" itemId={hotel.id} label={t.nav.wishlist} />
+              <BookButton locale={locale} itemType="hotel" itemId={hotel.id} label={t.common.book} />
+            </div>
           </div>
           {hotel.reviews?.length ? (
             <div className="mt-8 space-y-3">

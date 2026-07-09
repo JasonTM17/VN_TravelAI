@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { BookButton } from "@/components/book-button";
+import { WishlistButton } from "@/components/wishlist-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
 import { api } from "@/lib/api";
@@ -64,9 +65,12 @@ export default async function TourDetailPage({
             {tour.durationDays} {t.common.days} · {tour.destinationSlug}
           </p>
           <p className="mt-4 text-muted">{desc}</p>
-          <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
             <PriceTag amount={tour.priceFromVnd} prefix={t.common.from} locale={locale} />
-            <BookButton locale={locale} itemType="tour" itemId={tour.id} label={t.common.book} />
+            <div className="flex flex-wrap items-center gap-2">
+              <WishlistButton locale={locale} itemType="tour" itemId={tour.id} label={t.nav.wishlist} />
+              <BookButton locale={locale} itemType="tour" itemId={tour.id} label={t.common.book} />
+            </div>
           </div>
         </div>
       </div>
