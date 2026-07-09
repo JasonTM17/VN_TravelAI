@@ -1,0 +1,124 @@
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Claude / AI assistants - private state
+CLAUDE.md
+CLAUDE.MD
+AGENTS.md
+AGENTS.MD
+GEMINI.md
+GEMINI.MD
+CLAUDE.local.md
+AGENTS.local.md
+GEMINI.local.md
+.claude*
+.agents/
+.agent/
+.omc/
+.codex/
+.commandcode/
+.mcp.json
+.cursor/
+.continue/
+.aider*
+.cline/
+.roo/
+.windsurf/
+.playwright-mcp/
+skills-lock.json
+.grok/
+
+# Local workspaces and caches
+*-backups/
+*-tool-cache/
+*-tooling/
+*-worktrees/
+codex-clipboard-*.png
+
+# Private plans & notes (ClaudeKit plans/ is private)
+plans/
+PLAN*.md
+plan*.md
+NOTES*.md
+notes*.md
+TODO*.md
+todo*.md
+ROADMAP*.md
+roadmap*.md
+DRAFT*.md
+draft*.md
+*.private.md
+*.local.md
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.pem
+*.key
+*credentials*
+secrets/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.turbo/
+.next/
+out/
+dist/
+build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Prisma
+**/prisma/*.db
+**/prisma/*.db-journal
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test / e2e artifacts
+playwright-report/
+test-results/
+blob-report/
+e2e/.auth/
+
+# Docker volumes (local)
+data/
+
+# Generated root screenshots
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.gif
+/*playwright*.png
+/*screenshot*.png
+
+# Release artifacts
+release-manifest.json
+*.bundle
+*.bak
+*.tmp
+sbom.spdx.json
+
+# OS / misc
+.cache/
+tmp/
+temp/
