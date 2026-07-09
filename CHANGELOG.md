@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Wishlist UI (add/remove) and enriched wishlist API payloads.
+- OpenAPI TypeScript types generation (`web` `pnpm generate:api`).
+- `scripts/smoke.ps1` local four-service smoke check.
+
 ## [0.1.0] - 2026-07-09
 
 ### Added

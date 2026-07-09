@@ -19,10 +19,10 @@ export function DestinationCard({
   return (
     <Link
       href={href}
-      className="card-hover group block overflow-hidden rounded-2xl border border-border bg-card shadow-elevated"
+      className="card-hover group block overflow-hidden rounded-xl bg-white shadow-elevated"
       data-testid="destination-card"
     >
-      <div className="relative aspect-[16/10] overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden">
         <Image
           src={img}
           alt={name}
@@ -30,12 +30,12 @@ export function DestinationCard({
           className="object-cover transition duration-500 group-hover:scale-105"
           sizes="(max-width:768px) 100vw, 33vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-indigo-night/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
         <div className="absolute bottom-3 left-3 right-3">
-          <div className="text-xs font-medium uppercase tracking-wide text-white/80">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-white/80">
             {destination.countryCode}
           </div>
-          <h3 className="text-lg font-semibold text-white">{name}</h3>
+          <h3 className="text-base font-bold text-white">{name}</h3>
         </div>
       </div>
     </Link>

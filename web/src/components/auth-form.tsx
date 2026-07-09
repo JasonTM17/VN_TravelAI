@@ -40,7 +40,7 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
         <label className="block text-sm">
           {t.auth.fullName}
           <input
-            className="mt-1 w-full rounded-xl border border-border px-3 py-2"
+            className="input-field mt-1"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
@@ -51,7 +51,7 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
         {t.auth.email}
         <input
           type="email"
-          className="mt-1 w-full rounded-xl border border-border px-3 py-2"
+          className="input-field mt-1"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -61,7 +61,7 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
         {t.auth.password}
         <input
           type="password"
-          className="mt-1 w-full rounded-xl border border-border px-3 py-2"
+          className="input-field mt-1"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -72,7 +72,7 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-full bg-ocean py-2.5 text-sm font-semibold text-white shadow-glow disabled:opacity-60"
+        className="btn-primary w-full disabled:opacity-60"
       >
         {loading ? "..." : mode === "login" ? t.auth.submitLogin : t.auth.submitRegister}
       </button>
