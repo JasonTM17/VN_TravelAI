@@ -1,6 +1,6 @@
 # Port remaps to avoid conflicts with other local projects (e.g. FoodFlow).
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
-# Requires Compose that supports !override for sequence fields.
+# Browser-facing NEXT_PUBLIC_* must match published host ports below.
 
 services:
   postgres:
@@ -22,12 +22,40 @@ services:
   identity:
     ports: !override
       - "53002:3002"
+    environment:
+      DATABASE_URL: postgresql://travelai:travelai_dev@postgres:5432/travelai_identity
+      REDIS_URL: redis://redis:6379
   api:
     ports: !override
       - "53001:3001"
+    environment:
+      DATABASE_URL: postgresql://travelai:travelai_dev@postgres:5432/travelai
+      DIRECT_URL: postgresql://travelai:travelai_dev@postgres:5432/travelai
+      REDIS_URL: redis://redis:6379
+      MEILI_HOST: http://meilisearch:7700
+      IDENTITY_JWKS_URL: http://identity:3002/.well-known/jwks.json
+      CORS_ORIGINS: http://localhost:53000,http://127.0.0.1:53000
   ai:
     ports: !override
       - "53003:3003"
+    environment:
+      REDIS_URL: redis://redis:6379
+      N8N_WEBHOOK_BASE_URL: http://n8n:5678/webhook
+      API_BASE_URL: http://api:3001
+      IDENTITY_JWKS_URL: http://identity:3002/.well-known/jwks.json
   web:
     ports: !override
       - "53000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:53001
+      NEXT_PUBLIC_IDENTITY_URL: http://localhost:53002
+      NEXT_PUBLIC_AI_URL: http://localhost:53003
+      NEXT_PUBLIC_DEFAULT_LOCALE: vi
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:53001
+        NEXT_PUBLIC_IDENTITY_URL: http://localhost:53002
+        NEXT_PUBLIC_AI_URL: http://localhost:53003
+        NEXT_PUBLIC_DEFAULT_LOCALE: vi

@@ -48,12 +48,14 @@ Contract: [`docs/openapi.yaml`](docs/openapi.yaml) · ADRs: [`docs/adr/`](docs/a
 
 ```bash
 cp .env.example .env
-docker compose up -d --build
-# Web:      http://localhost:3000
-# API:      http://localhost:3001/healthz
-# Identity: http://localhost:3002/healthz
-# AI:       http://localhost:3003/healthz
-# n8n:      http://localhost:5678
+# Default ports (3000–3003). If they clash with other projects (e.g. FoodFlow):
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+# Web:      http://localhost:53000  (default compose: :3000)
+# API:      http://localhost:53001/healthz
+# Identity: http://localhost:53002/healthz
+# AI:       http://localhost:53003/healthz
+# n8n:      http://localhost:55678
+# Local overlay sets NEXT_PUBLIC_* + CORS to the remapped host ports.
 ```
 
 Demo user (local only): see `.env.example` (`DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD`).
