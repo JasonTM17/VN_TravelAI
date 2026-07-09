@@ -9,6 +9,9 @@ export function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
+    pathname === "/healthz" ||
+    pathname === "/readyz" ||
+    pathname === "/metrics" ||
     pathname.includes(".") // static files
   ) {
     return NextResponse.next();

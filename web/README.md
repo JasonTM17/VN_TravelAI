@@ -14,6 +14,12 @@ Consumes OpenAPI contract at [`docs/openapi.yaml`](../docs/openapi.yaml):
 - Booking funnel
 - AI Trip Planner UI
 
+Probes (this service):
+
+- `GET /healthz` — liveness `{ status: "ok", service: "web" }`
+- `GET /readyz` — readiness + optional API check
+- `GET /metrics` — minimal Prometheus text
+
 ## Env vars
 
 | name | required | default | description |
