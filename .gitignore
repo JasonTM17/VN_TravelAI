@@ -122,3 +122,7 @@ sbom.spdx.json
 .cache/
 tmp/
 temp/
+
+# Local MCP cache
+mcps/
+
