@@ -84,6 +84,7 @@ async function main() {
   app.get("/.well-known/jwks.json", async () => toJwks(primary, secondary));
 
   await authRoutes(app, { config, primary, redis });
+  // secondary is always loaded for JWKS dual-slot rotation; primary signs new tokens
 
   try {
     await ensureDemoUser(config.DEMO_USER_EMAIL.toLowerCase(), config.DEMO_USER_PASSWORD);
