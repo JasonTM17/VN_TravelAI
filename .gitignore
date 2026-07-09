@@ -126,3 +126,9 @@ temp/
 # Local MCP cache
 mcps/
 
+
+# Stitch runtime exports (screenshots can be large)
+.stitch/designs/*.png
+.stitch/designs/*.html
+.stitch/designs/*.bin
+
