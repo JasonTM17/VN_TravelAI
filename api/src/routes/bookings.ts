@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { sendProblem } from "../lib/problem.js";
 import type { createAuthGuard } from "../lib/auth.js";
+import { applyPayment } from "../lib/booking-state.js";
 
 const createSchema = z.object({
   itemType: z.enum(["hotel", "tour", "flight"]),
@@ -114,18 +115,19 @@ export async function bookingRoutes(
 
     const booking = await prisma.booking.findFirst({ where: { id, userId: user.id } });
     if (!booking) return sendProblem(reply, 404, "Not found", "Booking not found");
-    if (booking.status === "cancelled") {
-      return sendProblem(reply, 400, "Invalid state", "Booking cancelled");
+    const decision = applyPayment(booking.status, outcome);
+    if (!decision.ok) {
+      if (decision.reason === "Payment failed") {
+        return sendProblem(reply, 402, "Payment failed", "Mock payment declined");
+      }
+      return sendProblem(reply, 400, "Invalid state", decision.reason);
     }
-    if (booking.status === "confirmed") {
+    if (booking.status === decision.status) {
       return { success: true, data: booking };
-    }
-    if (outcome === "fail") {
-      return sendProblem(reply, 402, "Payment failed", "Mock payment declined");
     }
     const updated = await prisma.booking.update({
       where: { id },
-      data: { status: "confirmed" },
+      data: { status: decision.status },
     });
     return { success: true, data: updated };
   });
