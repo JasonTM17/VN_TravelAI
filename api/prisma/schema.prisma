@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Destination {
+  id            String   @id @default(uuid()) @db.Uuid
+  slug          String   @unique
+  nameVi        String   @map("name_vi")
+  nameEn        String   @map("name_en")
+  countryCode   String   @map("country_code")
+  region        String?
+  descriptionVi String   @map("description_vi") @db.Text
+  descriptionEn String   @map("description_en") @db.Text
+  heroImageUrl  String   @map("hero_image_url")
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime @default(now()) @map("created_at")
+  hotels        Hotel[]
+  tours         Tour[]
+
+  @@index([countryCode])
+  @@map("destinations")
+}
+
+model Hotel {
+  id              String   @id @default(uuid()) @db.Uuid
+  slug            String   @unique
+  name            String
+  stars           Int      @default(3)
+  priceFromVnd    Int      @map("price_from_vnd")
+  currency        String   @default("VND")
+  destinationId   String   @map("destination_id") @db.Uuid
+  descriptionVi   String   @map("description_vi") @db.Text
+  descriptionEn   String   @map("description_en") @db.Text
+  images          String[]
+  amenities       String[]
+  rating          Float    @default(4.5)
+  createdAt       DateTime @default(now()) @map("created_at")
+  destination     Destination @relation(fields: [destinationId], references: [id])
+  reviews         Review[]
+
+  @@index([destinationId])
+  @@index([priceFromVnd])
+  @@map("hotels")
+}
+
+model Tour {
+  id            String   @id @default(uuid()) @db.Uuid
+  slug          String   @unique
+  titleVi       String   @map("title_vi")
+  titleEn       String   @map("title_en")
+  durationDays  Int      @map("duration_days")
+  priceFromVnd  Int      @map("price_from_vnd")
+  destinationId String   @map("destination_id") @db.Uuid
+  descriptionVi String   @map("description_vi") @db.Text
+  descriptionEn String   @map("description_en") @db.Text
+  images        String[]
+  createdAt     DateTime @default(now()) @map("created_at")
+  destination   Destination @relation(fields: [destinationId], references: [id])
+  reviews       Review[]
+
+  @@index([destinationId])
+  @@map("tours")
+}
+
+model Flight {
+  id           String   @id @default(uuid()) @db.Uuid
+  airline      String
+  flightNumber String   @map("flight_number")
+  fromCode     String   @map("from_code")
+  toCode       String   @map("to_code")
+  departAt     DateTime @map("depart_at")
+  arriveAt     DateTime @map("arrive_at")
+  priceVnd     Int      @map("price_vnd")
+  cabin        String   @default("economy")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([fromCode, toCode])
+  @@map("flights")
+}
+
+model Review {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  author    String
+  rating    Int
+  body      String   @db.Text
+  hotelId   String?  @map("hotel_id") @db.Uuid
+  tourId    String?  @map("tour_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  hotel     Hotel?   @relation(fields: [hotelId], references: [id])
+  tour      Tour?    @relation(fields: [tourId], references: [id])
+
+  @@map("reviews")
+}
+
+enum BookingStatus {
+  draft
+  pending_payment
+  confirmed
+  cancelled
+}
+
+enum BookingItemType {
+  hotel
+  tour
+  flight
+}
+
+model Booking {
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  status         BookingStatus   @default(draft)
+  itemType       BookingItemType @map("item_type")
+  itemId         String          @map("item_id") @db.Uuid
+  itemSnapshot   Json            @map("item_snapshot")
+  guests         Int             @default(1)
+  startDate      DateTime        @map("start_date") @db.Date
+  endDate        DateTime?       @map("end_date") @db.Date
+  totalVnd       Int             @map("total_vnd")
+  contactName    String?         @map("contact_name")
+  contactEmail   String?         @map("contact_email")
+  contactPhone   String?         @map("contact_phone")
+  idempotencyKey String?         @unique @map("idempotency_key")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("bookings")
+}
+
+enum WishlistItemType {
+  hotel
+  tour
+  destination
+}
+
+model WishlistItem {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  itemType  WishlistItemType @map("item_type")
+  itemId    String           @map("item_id") @db.Uuid
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId])
+  @@map("wishlist_items")
+}
+
+model Itinerary {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @map("user_id") @db.Uuid
+  destination         String
+  daysJson            Json     @map("days_json")
+  estimatedBudgetVnd  Int      @map("estimated_budget_vnd")
+  hotelSuggestions    Json     @map("hotel_suggestions")
+  degraded            Boolean  @default(false)
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("itineraries")
+}
