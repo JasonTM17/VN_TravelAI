@@ -1,0 +1,211 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const IDENTITY_URL = process.env.NEXT_PUBLIC_IDENTITY_URL ?? "http://localhost:3002";
+const AI_URL = process.env.NEXT_PUBLIC_AI_URL ?? "http://localhost:3003";
+
+export type ApiEnvelope<T> = { success: boolean; data: T; meta?: { page: number; limit: number; total: number } };
+
+async function request<T>(base: string, path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${base}${path}`, {
+    ...init,
+    headers: {
+      "content-type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+export const api = {
+  listDestinations: (q?: string) =>
+    request<ApiEnvelope<Destination[]>>(API_URL, `/v1/destinations${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  getDestination: (slug: string) =>
+    request<ApiEnvelope<Destination>>(API_URL, `/v1/destinations/${slug}`),
+  listHotels: (params: Record<string, string | number | undefined> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    });
+    return request<ApiEnvelope<Hotel[]>>(API_URL, `/v1/hotels?${qs}`);
+  },
+  getHotel: (slug: string) => request<ApiEnvelope<Hotel>>(API_URL, `/v1/hotels/${slug}`),
+  listTours: (params: Record<string, string | number | undefined> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    });
+    return request<ApiEnvelope<Tour[]>>(API_URL, `/v1/tours?${qs}`);
+  },
+  getTour: (slug: string) => request<ApiEnvelope<Tour>>(API_URL, `/v1/tours/${slug}`),
+  searchFlights: (from: string, to: string, date: string) =>
+    request<ApiEnvelope<Flight[]>>(
+      API_URL,
+      `/v1/flights/search?from=${from}&to=${to}&date=${date}`,
+    ),
+  search: (q: string) => request<ApiEnvelope<SearchResult>>(API_URL, `/v1/search?q=${encodeURIComponent(q)}`),
+  login: (email: string, password: string) =>
+    request<ApiEnvelope<AuthData>>(IDENTITY_URL, "/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  register: (email: string, password: string, fullName: string) =>
+    request<ApiEnvelope<AuthData>>(IDENTITY_URL, "/v1/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, fullName }),
+    }),
+  me: (token: string) =>
+    request<ApiEnvelope<User>>(IDENTITY_URL, "/v1/auth/me", {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+  listBookings: (token: string) =>
+    request<ApiEnvelope<Booking[]>>(API_URL, "/v1/bookings", {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+  createBooking: (token: string, body: CreateBookingBody, idempotencyKey: string) =>
+    request<ApiEnvelope<Booking>>(API_URL, "/v1/bookings", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "idempotency-key": idempotencyKey,
+      },
+      body: JSON.stringify(body),
+    }),
+  payBooking: (token: string, id: string, outcome: "success" | "fail" = "success") =>
+    request<ApiEnvelope<Booking>>(API_URL, `/v1/bookings/${id}/pay`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+      body: JSON.stringify({ outcome }),
+    }),
+  chat: (token: string, message: string, conversationId?: string) =>
+    request<ApiEnvelope<{ reply: string; conversationId: string; degraded?: boolean }>>(
+      AI_URL,
+      "/v1/chat",
+      {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message, conversationId }),
+      },
+    ),
+  createItinerary: (
+    token: string,
+    body: {
+      destination: string;
+      days: number;
+      budgetVnd: number;
+      travelers?: number;
+      style?: string;
+      notes?: string;
+    },
+  ) =>
+    request<ApiEnvelope<Itinerary>>(AI_URL, "/v1/itineraries", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    }),
+};
+
+export type Destination = {
+  id: string;
+  slug: string;
+  nameVi: string;
+  nameEn: string;
+  countryCode: string;
+  region?: string | null;
+  descriptionVi: string;
+  descriptionEn: string;
+  heroImageUrl: string;
+};
+
+export type Hotel = {
+  id: string;
+  slug: string;
+  name: string;
+  stars: number;
+  priceFromVnd: number;
+  destinationSlug?: string;
+  images?: string[];
+  amenities?: string[];
+  rating?: number;
+  descriptionVi?: string;
+  descriptionEn?: string;
+  reviews?: Array<{ author: string; rating: number; body: string }>;
+};
+
+export type Tour = {
+  id: string;
+  slug: string;
+  titleVi: string;
+  titleEn: string;
+  durationDays: number;
+  priceFromVnd: number;
+  destinationSlug?: string;
+  images?: string[];
+  descriptionVi?: string;
+  descriptionEn?: string;
+};
+
+export type Flight = {
+  id: string;
+  airline: string;
+  flightNumber: string;
+  from: string;
+  to: string;
+  departAt: string;
+  arriveAt: string;
+  priceVnd: number;
+  cabin: string;
+};
+
+export type User = { id: string; email: string; fullName: string };
+export type AuthData = {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  user: User;
+};
+
+export type Booking = {
+  id: string;
+  status: string;
+  itemType: string;
+  itemId: string;
+  totalVnd: number;
+  guests: number;
+  startDate: string;
+  endDate?: string | null;
+  itemSnapshot?: Record<string, unknown>;
+};
+
+export type CreateBookingBody = {
+  itemType: "hotel" | "tour" | "flight";
+  itemId: string;
+  guests: number;
+  startDate: string;
+  endDate?: string;
+  contactName?: string;
+  contactEmail?: string;
+};
+
+export type SearchResult = {
+  destinations: Destination[];
+  hotels: Hotel[];
+  tours: Tour[];
+};
+
+export type Itinerary = {
+  id: string;
+  destination: string;
+  days: Array<{
+    day: number;
+    title: string;
+    activities: Array<{ time: string; title: string; description: string; place?: string }>;
+  }>;
+  estimatedBudgetVnd: number;
+  hotelSuggestions?: Array<{ slug: string; name: string }>;
+  degraded?: boolean;
+};

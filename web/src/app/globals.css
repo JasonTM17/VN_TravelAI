@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7fbfc;
+  --foreground: #0b1f2a;
+  --ocean: #0d9488;
+  --ocean-deep: #0f766e;
+  --coral: #f97366;
+  --rice: #65a30d;
+  --indigo-night: #1e1b4b;
+  --card: #ffffff;
+  --muted: #5b6b76;
+  --border: #d7e3e8;
+  --glow: rgba(13, 148, 136, 0.35);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ocean: var(--ocean);
+  --color-coral: var(--coral);
+  --color-rice: var(--rice);
+  --color-indigo-night: var(--indigo-night);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.gradient-text {
+  background: linear-gradient(120deg, #0d9488 0%, #0891b2 45%, #f97366 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(13, 148, 136, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(13, 148, 136, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.bg-radial-fade {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(13, 148, 136, 0.22), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(249, 115, 102, 0.12), transparent 45%);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.15), 0 12px 40px var(--glow);
+}
+
+.shadow-elevated {
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.55s ease-out both;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #e8eef1 25%, #f6fafb 50%, #e8eef1 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+}
