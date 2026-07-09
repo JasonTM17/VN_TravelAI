@@ -1,0 +1,32 @@
+# Production overlay — pull public images instead of local build.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  identity:
+    image: nguyenson1710/travelai-identity:${IMAGE_TAG:-latest}
+    build: !reset null
+    restart: always
+
+  api:
+    image: nguyenson1710/travelai-api:${IMAGE_TAG:-latest}
+    build: !reset null
+    restart: always
+
+  ai:
+    image: nguyenson1710/travelai-ai:${IMAGE_TAG:-latest}
+    build: !reset null
+    restart: always
+
+  web:
+    image: nguyenson1710/travelai-web:${IMAGE_TAG:-latest}
+    build: !reset null
+    restart: always
+
+  n8n:
+    restart: always
+
+  postgres:
+    restart: always
+
+  redis:
+    restart: always

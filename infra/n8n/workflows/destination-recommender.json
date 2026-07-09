@@ -1,0 +1,52 @@
+{
+  "name": "TravelAI Destination Recommender",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "destination-recommender",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-dest",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "destination-recommender"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst month = Number(body.month) || (new Date().getMonth() + 1);\nconst budget = Number(body.budgetVnd) || 5000000;\nconst picks = month >= 5 && month <= 8\n  ? ['da-nang', 'hoi-an', 'nha-trang', 'phu-quoc']\n  : month >= 9 && month <= 11\n    ? ['sapa', 'ninh-binh', 'ha-noi', 'da-lat']\n    : ['phu-quoc', 'can-tho', 'tp-hcm', 'da-lat'];\nreturn [{ json: { recommendations: picks, budgetVnd: budget, rationale: 'Gợi ý theo mùa Việt Nam + ngân sách.' } }];"
+      },
+      "id": "code-dest",
+      "name": "Recommend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-dest",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [520, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Recommend", "type": "main", "index": 0 }]]
+    },
+    "Recommend": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "travelai" }]
+}

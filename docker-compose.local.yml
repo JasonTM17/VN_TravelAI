@@ -1,0 +1,32 @@
+# Port remaps to avoid conflicts with other local projects (e.g. FoodFlow).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+
+services:
+  postgres:
+    ports:
+      - "55432:5432"
+  redis:
+    ports:
+      - "56379:6379"
+  meilisearch:
+    ports:
+      - "57700:7700"
+  minio:
+    ports:
+      - "59000:9000"
+      - "59001:9001"
+  n8n:
+    ports:
+      - "55678:5678"
+  identity:
+    ports:
+      - "53002:3002"
+  api:
+    ports:
+      - "53001:3001"
+  ai:
+    ports:
+      - "53003:3003"
+  web:
+    ports:
+      - "53000:3000"

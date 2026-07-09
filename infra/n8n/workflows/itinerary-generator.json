@@ -1,0 +1,52 @@
+{
+  "name": "TravelAI Itinerary Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "itinerary-generator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-itinerary",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "itinerary-generator"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst destination = body.destination || 'Việt Nam';\nconst daysCount = Math.min(Math.max(Number(body.days) || 3, 1), 21);\nconst budget = Number(body.budgetVnd) || 5000000;\nconst style = body.style || 'couple';\nconst hotelHints = Array.isArray(body.hotelHints) ? body.hotelHints : [];\nconst days = [];\nfor (let i = 1; i <= daysCount; i++) {\n  days.push({\n    day: i,\n    title: `Ngày ${i} · ${destination}`,\n    activities: [\n      { time: '08:30', title: 'Ăn sáng & khởi động', description: `Phong cách ${style}: chọn quán địa phương gần khách sạn.`, place: destination },\n      { time: '10:00', title: i === 1 ? 'Điểm biểu tượng' : 'Trải nghiệm chính', description: 'Đặt vé trước nếu cuối tuần; mang nước và kem chống nắng.', place: destination },\n      { time: '15:00', title: 'Văn hóa / thiên nhiên', description: 'Nhịp vừa phải, ưu tiên an toàn và trải nghiệm xác thực.', place: destination },\n      { time: '19:00', title: 'Ẩm thực tối', description: 'Thử đặc sản vùng miền; giữ hoá đơn nếu cần claim.', place: destination }\n    ]\n  });\n}\nreturn [{\n  json: {\n    destination,\n    days,\n    estimatedBudgetVnd: budget,\n    hotelSuggestions: hotelHints,\n    transportTips: ['Bay nội địa nếu quãng đường dài', 'Grab/xe ôm công nghệ trong thành phố'],\n    foodTips: ['Ăn sáng địa phương', 'Uống nước đóng chai khi di chuyển'],\n    degraded: false\n  }\n}];"
+      },
+      "id": "code-itinerary",
+      "name": "Build Itinerary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-itinerary",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [520, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Build Itinerary", "type": "main", "index": 0 }]]
+    },
+    "Build Itinerary": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "travelai" }]
+}

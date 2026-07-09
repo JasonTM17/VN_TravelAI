@@ -1,0 +1,235 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: travelai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-travelai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-travelai_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-travelai}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-travelai} -d ${POSTGRES_DB:-travelai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: travelai-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: travelai-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-travelai_meili_dev_key_change_me}
+      MEILI_ENV: development
+    ports:
+      - "${MEILI_HOST_PORT:-7700}:7700"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7700/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: travelai-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server --console-address ":9001" /data
+    ports:
+      - "${MINIO_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  n8n:
+    image: n8nio/n8n:1.72.1
+    container_name: travelai-n8n
+    restart: unless-stopped
+    environment:
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:${N8N_HOST_PORT:-5678}/
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-travelai_n8n_encryption_key_32b}
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-n8n_admin_dev}
+      GENERIC_TIMEZONE: Asia/Ho_Chi_Minh
+    ports:
+      - "${N8N_HOST_PORT:-5678}:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./infra/n8n/workflows:/workflows:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  identity:
+    build:
+      context: ./identity
+      dockerfile: Dockerfile
+    container_name: travelai-identity
+    restart: unless-stopped
+    ports:
+      - "${IDENTITY_PORT:-3002}:3002"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3002
+      DATABASE_URL: ${IDENTITY_DATABASE_URL:-postgresql://travelai:travelai_dev@postgres:5432/travelai_identity}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_ISSUER: ${IDENTITY_JWT_ISSUER:-https://identity.travelai.local}
+      JWT_AUDIENCE: ${IDENTITY_JWT_AUDIENCE:-travelai-web}
+      JWT_PRIMARY_PRIVATE_KEY: ${IDENTITY_JWT_PRIMARY_PRIVATE_KEY:-}
+      JWT_SECONDARY_PRIVATE_KEY: ${IDENTITY_JWT_SECONDARY_PRIVATE_KEY:-}
+      COOKIE_SECRET: ${IDENTITY_COOKIE_SECRET:-dev_cookie_secret_change_me_32chars}
+      DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-demo@travelai.local}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-DemoTravelAI1!}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3002/healthz',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: travelai-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3001}:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL:-postgresql://travelai:travelai_dev@postgres:5432/travelai}
+      DIRECT_URL: ${DIRECT_URL:-postgresql://travelai:travelai_dev@postgres:5432/travelai}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      MEILI_HOST: ${MEILI_HOST:-http://meilisearch:7700}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-travelai_meili_dev_key_change_me}
+      IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-http://identity:3002/.well-known/jwks.json}
+      IDENTITY_ISSUER: ${IDENTITY_ISSUER:-https://identity.travelai.local}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3001/healthz',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: travelai-ai
+    restart: unless-stopped
+    ports:
+      - "${AI_PORT:-3003}:3003"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3003
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      N8N_WEBHOOK_BASE_URL: ${N8N_WEBHOOK_BASE_URL:-http://n8n:5678/webhook}
+      N8N_HMAC_SECRET: ${N8N_HMAC_SECRET:-travelai_n8n_hmac_dev_secret_change_me}
+      AI_DEGRADED_MODE: ${AI_DEGRADED_MODE:-false}
+      API_BASE_URL: http://api:3001
+      IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-http://identity:3002/.well-known/jwks.json}
+      IDENTITY_ISSUER: ${IDENTITY_ISSUER:-https://identity.travelai.local}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      redis:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3003/healthz',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        NEXT_PUBLIC_IDENTITY_URL: ${NEXT_PUBLIC_IDENTITY_URL:-http://localhost:3002}
+        NEXT_PUBLIC_AI_URL: ${NEXT_PUBLIC_AI_URL:-http://localhost:3003}
+        NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-vi}
+    container_name: travelai-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_IDENTITY_URL: ${NEXT_PUBLIC_IDENTITY_URL:-http://localhost:3002}
+      NEXT_PUBLIC_AI_URL: ${NEXT_PUBLIC_AI_URL:-http://localhost:3003}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-vi}
+    depends_on:
+      api:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  postgres_data:
+  redis_data:
+  meili_data:
+  minio_data:
+  n8n_data:

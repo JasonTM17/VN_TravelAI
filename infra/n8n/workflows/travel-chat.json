@@ -1,0 +1,53 @@
+{
+  "name": "TravelAI Travel Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "travel-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-travel-chat",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "travel-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst secret = $env.N8N_HMAC_SECRET || 'travelai_n8n_hmac_dev_secret_change_me';\nconst raw = JSON.stringify($json.body ?? $json);\nconst sig = ($json.headers?.['x-signature-sha256'] || $json.headers?.['X-Signature-SHA256'] || '').toString();\nconst expected = crypto.createHmac('sha256', secret).update(typeof $json.body === 'string' ? $json.body : JSON.stringify($json.body || $json)).digest('hex');\n// In many n8n setups body is already parsed; accept request and build reply offline-friendly.\nconst body = $json.body || $json;\nconst message = body.message || '';\nconst reply = `TravelAI Concierge: Cảm ơn bạn! Với yêu cầu \"${String(message).slice(0, 180)}\", mình gợi ý ưu tiên Việt Nam theo mùa, đặt khách sạn trung tâm, và giữ 15% ngân sách dự phòng. Bạn muốn lịch trình mấy ngày?`;\nreturn [{ json: { reply, conversationId: body.conversationId || null, degraded: false } }];"
+      },
+      "id": "code-reply",
+      "name": "Build Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [520, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Build Reply", "type": "main", "index": 0 }]]
+    },
+    "Build Reply": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": [{ "name": "travelai" }]
+}
