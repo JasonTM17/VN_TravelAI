@@ -8,6 +8,7 @@ import { createRedis } from "./redis.js";
 import { authRoutes } from "./routes/auth.js";
 import { prisma } from "./db.js";
 import bcrypt from "bcryptjs";
+import { metricsAuthorized } from "./lib/metrics-guard.js";
 
 async function ensureDemoUser(email: string, password: string) {
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -103,7 +104,22 @@ async function main() {
       return reply.status(503).send({ status: "not_ready", service: "identity" });
     }
   });
-  app.get("/metrics", async (_req, reply) => {
+  app.get("/metrics", async (req, reply) => {
+    const xTok = req.headers["x-metrics-token"];
+    if (
+      !metricsAuthorized(
+        config.METRICS_TOKEN,
+        req.headers.authorization,
+        typeof xTok === "string" ? xTok : undefined,
+      )
+    ) {
+      return reply.status(401).send({
+        type: "about:blank",
+        title: "Unauthorized",
+        status: 401,
+        detail: "Metrics token required",
+      });
+    }
     reply.header("content-type", register.contentType);
     return register.metrics();
   });

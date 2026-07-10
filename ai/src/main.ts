@@ -10,6 +10,7 @@ import { createAuthGuard } from "./lib/auth.js";
 import { callN8nWebhook, TRAVEL_CHAT_WEBHOOK_TIMEOUT_MS } from "./lib/n8n.js";
 import { degradedChatReply, degradedItinerary } from "./lib/degraded.js";
 import { requireHmac } from "./lib/hmac-guard.js";
+import { metricsAuthorized } from "./lib/metrics-guard.js";
 
 const chatSchema = z.object({
   message: z.string().min(1).max(4000),
@@ -104,7 +105,22 @@ async function main() {
       degradedMode: config.AI_DEGRADED_MODE,
     };
   });
-  app.get("/metrics", async (_req, reply) => {
+  app.get("/metrics", async (req, reply) => {
+    const xTok = req.headers["x-metrics-token"];
+    if (
+      !metricsAuthorized(
+        config.METRICS_TOKEN,
+        req.headers.authorization,
+        typeof xTok === "string" ? xTok : undefined,
+      )
+    ) {
+      return reply.status(401).send({
+        type: "about:blank",
+        title: "Unauthorized",
+        status: 401,
+        detail: "Metrics token required",
+      });
+    }
     reply.header("content-type", register.contentType);
     return register.metrics();
   });

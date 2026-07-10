@@ -12,6 +12,8 @@ const envSchema = z.object({
   IDENTITY_ISSUER: z.string().default("https://identity.travelai.local"),
   IDENTITY_AUDIENCE: z.string().default("travelai-web"),
   CORS_ORIGINS: z.string().default("http://localhost:3000"),
+  /** When set, /metrics requires Bearer or X-Metrics-Token. Empty = open (local). */
+  METRICS_TOKEN: z.string().optional().default(""),
   LOG_LEVEL: z.string().default("info"),
 });
 

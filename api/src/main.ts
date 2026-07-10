@@ -13,6 +13,7 @@ import { bookingRoutes } from "./routes/bookings.js";
 import { wishlistRoutes } from "./routes/wishlists.js";
 import { itineraryRoutes } from "./routes/itineraries.js";
 import { chatHistoryRoutes } from "./routes/chat-history.js";
+import { metricsAuthorized } from "./lib/metrics-guard.js";
 
 async function main() {
   const config = loadConfig();
@@ -84,7 +85,22 @@ async function main() {
       return reply.status(503).send({ status: "not_ready", service: "api" });
     }
   });
-  app.get("/metrics", async (_req, reply) => {
+  app.get("/metrics", async (req, reply) => {
+    const xTok = req.headers["x-metrics-token"];
+    if (
+      !metricsAuthorized(
+        config.METRICS_TOKEN,
+        req.headers.authorization,
+        typeof xTok === "string" ? xTok : undefined,
+      )
+    ) {
+      return reply.status(401).send({
+        type: "about:blank",
+        title: "Unauthorized",
+        status: 401,
+        detail: "Metrics token required",
+      });
+    }
     reply.header("content-type", register.contentType);
     return register.metrics();
   });
