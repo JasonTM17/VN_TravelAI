@@ -363,6 +363,75 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /v1/hotels/{slug}/availability:
+    get:
+      tags: [hotels]
+      summary: Hotel night availability (PMS room type optional)
+      operationId: getHotelAvailability
+      parameters:
+        - $ref: "#/components/parameters/Slug"
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: roomTypeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/search/vectors:
+    get:
+      tags: [search]
+      summary: Semantic catalog vector search
+      operationId: searchVectors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: topK
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: OK
+
+  /v1/admin/reindex-vectors:
+    post:
+      tags: [admin]
+      summary: Reindex catalog embeddings (Pinecone or Postgres)
+      operationId: adminReindexVectors
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-Admin-Token
+          in: header
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
   /v1/tours:
     get:
       tags: [tours]
@@ -1171,6 +1240,48 @@ components:
         meta:
           $ref: "#/components/schemas/PageMeta"
 
+    HotelRoomType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameVi:
+          type: string
+        maxOccupancy:
+          type: integer
+        roomsTotal:
+          type: integer
+        basePriceVnd:
+          type: integer
+        ratePlans:
+          type: array
+          items:
+            $ref: "#/components/schemas/RatePlan"
+
+    RatePlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        nameEn:
+          type: string
+        nameVi:
+          type: string
+        priceVnd:
+          type: integer
+        breakfastIncluded:
+          type: boolean
+        refundable:
+          type: boolean
+
     Hotel:
       type: object
       properties:
@@ -1199,6 +1310,12 @@ components:
             type: string
         rating:
           type: number
+        roomsLeft:
+          type: integer
+        roomTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/HotelRoomType"
 
     HotelListResponse:
       type: object
@@ -1354,6 +1471,14 @@ components:
           format: email
         contactPhone:
           type: string
+        roomTypeId:
+          type: string
+          format: uuid
+          description: Optional PMS room type (hotel); defaults to STD
+        ratePlanId:
+          type: string
+          format: uuid
+          description: Optional rate plan; defaults to BAR
 
     Booking:
       type: object

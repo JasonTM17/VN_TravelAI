@@ -364,6 +364,19 @@ export const api = {
         body: JSON.stringify({}),
       },
     ),
+  adminReindexVectors: (token: string, adminToken?: string) =>
+    request<ApiEnvelope<{ reindexed: boolean; by: string; counts: { upserted: number; errors: number } }>>(
+      API_URL,
+      "/v1/admin/reindex-vectors",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          ...(adminToken ? { "x-admin-token": adminToken } : {}),
+        },
+        body: JSON.stringify({}),
+      },
+    ),
   adminAudit: (token: string, limit = 20) =>
     request<ApiEnvelope<AdminAuditRow[]>>(API_URL, `/v1/admin/audit?limit=${limit}`, {
       headers: { authorization: `Bearer ${token}` },
@@ -405,6 +418,27 @@ export type Destination = {
   heroImageUrl: string;
 };
 
+export type RatePlan = {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameVi: string;
+  priceVnd: number;
+  breakfastIncluded: boolean;
+  refundable: boolean;
+};
+
+export type HotelRoomType = {
+  id: string;
+  code: string;
+  nameEn: string;
+  nameVi: string;
+  maxOccupancy: number;
+  roomsTotal: number;
+  basePriceVnd: number;
+  ratePlans?: RatePlan[];
+};
+
 export type Hotel = {
   id: string;
   slug: string;
@@ -419,6 +453,7 @@ export type Hotel = {
   descriptionVi?: string;
   descriptionEn?: string;
   reviews?: Array<{ author: string; rating: number; body: string }>;
+  roomTypes?: HotelRoomType[];
 };
 
 export type Tour = {
@@ -492,6 +527,8 @@ export type CreateBookingBody = {
   endDate?: string;
   contactName?: string;
   contactEmail?: string;
+  roomTypeId?: string;
+  ratePlanId?: string;
 };
 
 export type SearchResult = {

@@ -72,27 +72,50 @@ export function AdminConsole({ locale }: { locale: Locale }) {
             placeholder="X-Admin-Token"
           />
         </label>
-        <button
-          type="button"
-          className="btn-accent mt-4 inline-flex min-h-11 items-center disabled:opacity-60"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            setError(null);
-            setResult(null);
-            try {
-              const res = await api.adminReindex(token, adminToken.trim() || undefined);
-              setResult(JSON.stringify(res.data, null, 2));
-              await loadAudit(token);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : t.common.error);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          {busy ? t.common.loading : t.admin.reindex}
-        </button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn-accent inline-flex min-h-11 items-center disabled:opacity-60"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              setResult(null);
+              try {
+                const res = await api.adminReindex(token, adminToken.trim() || undefined);
+                setResult(JSON.stringify(res.data, null, 2));
+                await loadAudit(token);
+              } catch (e) {
+                setError(e instanceof Error ? e.message : t.common.error);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? t.common.loading : t.admin.reindex}
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center rounded-full border border-ocean px-5 text-sm font-semibold text-ocean transition hover:bg-ocean/5 disabled:opacity-60"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              setResult(null);
+              try {
+                const res = await api.adminReindexVectors(token, adminToken.trim() || undefined);
+                setResult(JSON.stringify(res.data, null, 2));
+                await loadAudit(token);
+              } catch (e) {
+                setError(e instanceof Error ? e.message : t.common.error);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? t.common.loading : locale === "vi" ? "Reindex vectors" : "Reindex vectors"}
+          </button>
+        </div>
         {error ? (
           <pre className="mt-3 max-h-40 overflow-auto rounded-lg bg-red-50 p-3 text-xs text-red-800">{error}</pre>
         ) : null}

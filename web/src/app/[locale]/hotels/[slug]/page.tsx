@@ -90,7 +90,13 @@ export default async function HotelDetailPage({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <WishlistButton locale={locale} itemType="hotel" itemId={hotel.id} label={t.nav.wishlist} />
-              <BookButton locale={locale} itemType="hotel" itemId={hotel.id} label={t.common.book} />
+              <BookButton
+                locale={locale}
+                itemType="hotel"
+                itemId={hotel.id}
+                label={t.common.book}
+                roomTypes={hotel.roomTypes}
+              />
             </div>
           </div>
           <div className="mt-8 space-y-3">
