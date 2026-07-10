@@ -17,13 +17,47 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst secret = $env.N8N_HMAC_SECRET || 'travelai_n8n_hmac_dev_secret_change_me';\nconst body = $json.body || $json;\nconst raw = typeof $json.body === 'string' ? $json.body : JSON.stringify(body);\nconst sig = ($json.headers && ($json.headers['x-signature-sha256'] || $json.headers['X-Signature-SHA256'])) || '';\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nif (!sig || sig !== expected) {\n  throw new Error('Invalid HMAC signature');\n}\nconst message = body.message || '';\nconst reply = `TravelAI Concierge: Cảm ơn bạn! Với yêu cầu \"${String(message).slice(0, 180)}\", mình gợi ý ưu tiên Việt Nam theo mùa, đặt khách sạn trung tâm, và giữ 15% ngân sách dự phòng. Bạn muốn lịch trình mấy ngày?`;\nreturn [{ json: { reply, conversationId: body.conversationId || null, degraded: false } }];"
+        "jsCode": "const crypto = require('crypto');\nconst secret = $env.N8N_HMAC_SECRET || 'travelai_n8n_hmac_dev_secret_change_me';\nconst root = $json;\nconst headers = root.headers || {};\nconst body = root.body !== undefined ? root.body : root;\nconst raw = typeof body === 'string' ? body : JSON.stringify(body);\nconst sig = headers['x-signature-sha256'] || headers['X-Signature-SHA256'] || '';\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nif (!sig || sig !== expected) {\n  throw new Error('Invalid HMAC signature');\n}\nconst payload = typeof body === 'string' ? JSON.parse(body) : body;\nconst message = String(payload.message || '').trim();\nif (!message) throw new Error('message required');\nconst apiKey = ($env.DEEPSEEK_API_KEY || '').trim();\nif (!apiKey) throw new Error('DEEPSEEK_API_KEY not configured');\nreturn [{ json: {\n  message,\n  conversationId: payload.conversationId || null,\n  userId: payload.userId || null,\n  apiKey,\n  model: $env.DEEPSEEK_MODEL || 'deepseek-v4-flash',\n  baseUrl: ($env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\\/$/, '')\n}}];"
       },
-      "id": "code-reply",
-      "name": "Build Reply",
+      "id": "code-verify-hmac",
+      "name": "Verify HMAC",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [260, 0]
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.baseUrl }}/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.apiKey }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": {{ JSON.stringify($json.model) }},\n  \"temperature\": 0.7,\n  \"max_tokens\": 900,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are TravelAI Concierge — Vietnam & world travel advisor in the TravelAI marketplace. Answer in the user language. Be specific on budget (VND), days, hotels, tours, seasons. Concise 80-220 words. Never claim real card charge or live GDS booking.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.message) }}\n    }\n  ]\n}",
+        "options": {
+          "timeout": 45000
+        }
+      },
+      "id": "http-deepseek",
+      "name": "DeepSeek V4 Flash",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Verify HMAC').item.json;\nconst data = $json;\nconst content = data.choices && data.choices[0] && data.choices[0].message\n  ? data.choices[0].message.content\n  : '';\nconst reply = String(content || '').trim();\nif (!reply) throw new Error('empty deepseek reply');\nreturn [{ json: {\n  reply,\n  conversationId: prev.conversationId,\n  degraded: false,\n  model: prev.model,\n  provider: 'deepseek'\n}}];"
+      },
+      "id": "code-map-reply",
+      "name": "Map Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 0]
     },
     {
       "parameters": {
@@ -35,14 +69,20 @@
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [520, 0]
+      "position": [1020, 0]
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [[{ "node": "Build Reply", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Verify HMAC", "type": "main", "index": 0 }]]
     },
-    "Build Reply": {
+    "Verify HMAC": {
+      "main": [[{ "node": "DeepSeek V4 Flash", "type": "main", "index": 0 }]]
+    },
+    "DeepSeek V4 Flash": {
+      "main": [[{ "node": "Map Reply", "type": "main", "index": 0 }]]
+    },
+    "Map Reply": {
       "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
     }
   },

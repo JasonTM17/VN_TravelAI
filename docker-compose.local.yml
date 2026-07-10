@@ -1,6 +1,9 @@
 # Port remaps to avoid conflicts with other local projects (e.g. FoodFlow).
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 # Browser-facing NEXT_PUBLIC_* must match published host ports below.
+#
+# Chat path: AI → chat-webhook (HMAC) → DeepSeek V4 Flash when DEEPSEEK_API_KEY is set.
+# Without the key, chat-webhook returns 503 and AI responds with degraded:true.
 
 services:
   postgres:
@@ -21,7 +24,38 @@ services:
       - "55678:5678"
     environment:
       WEBHOOK_URL: http://127.0.0.1:55678/
-      N8N_HMAC_SECRET: travelai_n8n_hmac_dev_secret_change_me
+      N8N_HMAC_SECRET: ${N8N_HMAC_SECRET:-travelai_n8n_hmac_dev_secret_change_me}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-flash}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+  # Live chat stand-in (no n8n UI import required for local stack)
+  chat-webhook:
+    image: node:22-alpine
+    container_name: travelai-chat-webhook
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "mock-n8n-webhook.mjs", "5678"]
+    environment:
+      N8N_HMAC_SECRET: ${N8N_HMAC_SECRET:-travelai_n8n_hmac_dev_secret_change_me}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-flash}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+    volumes:
+      - ./scripts/mock-n8n-webhook.mjs:/app/mock-n8n-webhook.mjs:ro
+      - ./scripts/lib:/app/lib:ro
+    ports:
+      - "55679:5678"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:5678/healthz',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
   identity:
     ports: !override
       - "53002:3002"
@@ -43,9 +77,14 @@ services:
       - "53003:3003"
     environment:
       REDIS_URL: redis://redis:6379
-      N8N_WEBHOOK_BASE_URL: http://n8n:5678/webhook
+      N8N_WEBHOOK_BASE_URL: http://chat-webhook:5678/webhook
+      N8N_HMAC_SECRET: ${N8N_HMAC_SECRET:-travelai_n8n_hmac_dev_secret_change_me}
+      AI_DEGRADED_MODE: ${AI_DEGRADED_MODE:-false}
       API_BASE_URL: http://api:3001
       IDENTITY_JWKS_URL: http://identity:3002/.well-known/jwks.json
+    depends_on:
+      chat-webhook:
+        condition: service_healthy
   web:
     ports: !override
       - "53000:3000"
@@ -62,3 +101,4 @@ services:
         NEXT_PUBLIC_IDENTITY_URL: http://localhost:53002
         NEXT_PUBLIC_AI_URL: http://localhost:53003
         NEXT_PUBLIC_DEFAULT_LOCALE: vi
+

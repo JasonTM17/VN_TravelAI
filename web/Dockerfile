@@ -1,8 +1,10 @@
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.6.5 --activate
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* .npmrc* ./
 RUN pnpm install --no-frozen-lockfile
+# Ensure Next can resolve styled-jsx (pnpm isolation edge case in Docker)
+RUN node -e "require('styled-jsx/package.json')" || pnpm add styled-jsx@5.1.6
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ARG NEXT_PUBLIC_IDENTITY_URL=http://localhost:3002

@@ -16,6 +16,7 @@
     "next": "15.5.16",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "styled-jsx": "^5.1.6",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },

@@ -60,6 +60,33 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 Demo user (local only): see `.env.example` (`DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD`).
 
+### Live chatbot (DeepSeek V4 Flash)
+
+1. Create a key at [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).
+2. Put it in `.env` (never commit the real value):
+
+```bash
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+```
+
+3. Restart the chat webhook + AI:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d chat-webhook ai
+```
+
+4. Verify live replies:
+
+```bash
+node scripts/smoke-chat.mjs
+# strict live gate (fails if still degraded):
+# REQUIRE_LIVE=1 node scripts/smoke-chat.mjs
+```
+
+Without `DEEPSEEK_API_KEY`, chat still works offline with `degraded: true` (no 5xx).
+
 ## Packages (Docker Hub)
 
 Images publish on push to `main` (`latest` + git SHA):
