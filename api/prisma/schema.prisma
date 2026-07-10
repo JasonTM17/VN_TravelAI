@@ -208,6 +208,31 @@ model Itinerary {
   @@map("itineraries")
 }
 
+model ChatConversation {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  title     String?
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  messages  ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid()) @db.Uuid
+  conversationId String           @map("conversation_id") @db.Uuid
+  role           String
+  content        String           @db.Text
+  degraded       Boolean          @default(false)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("chat_messages")
+}
+
 model AdminAuditLog {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id")

@@ -12,6 +12,7 @@ import { catalogRoutes } from "./routes/catalog.js";
 import { bookingRoutes } from "./routes/bookings.js";
 import { wishlistRoutes } from "./routes/wishlists.js";
 import { itineraryRoutes } from "./routes/itineraries.js";
+import { chatHistoryRoutes } from "./routes/chat-history.js";
 
 async function main() {
   const config = loadConfig();
@@ -96,6 +97,7 @@ async function main() {
   await bookingRoutes(app, requireAuth);
   await wishlistRoutes(app, requireAuth);
   await itineraryRoutes(app, requireAuth);
+  await chatHistoryRoutes(app, requireAuth);
 
   // Admin reindex: JWT with role=admin; optional X-Admin-Token dual factor when set.
   app.post("/v1/admin/reindex", async (req, reply) => {

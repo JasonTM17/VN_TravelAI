@@ -49,6 +49,34 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
 
+  // Restore last conversation from session when opening (if logged in)
+  useEffect(() => {
+    if (!open) return;
+    const token = getAccessToken();
+    if (!token || !conversationId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.getChatConversation(token, conversationId);
+        if (cancelled || !res.data?.messages?.length) return;
+        setMessages(
+          res.data.messages.map((m) => ({
+            role: m.role === "user" ? "user" : "ai",
+            text: m.content,
+            degraded: m.degraded,
+          })),
+        );
+      } catch {
+        /* no history yet */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // only when dialog opens with known id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const chips =
     locale === "vi"
       ? ["3 ngày Hội An couple", "Khách sạn Đà Nẵng gần biển", "Tour Hạ Long 1 ngày"]
@@ -68,11 +96,28 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     setLoading(true);
     try {
       const res = await api.chat(token, trimmed, conversationId);
-      setConversationId(res.data.conversationId);
+      const cid = res.data.conversationId;
+      setConversationId(cid);
       setMessages((m) => [
         ...m,
         { role: "ai", text: res.data.reply, degraded: res.data.degraded },
       ]);
+      // Persist turn on catalog API (user isolation via JWT)
+      try {
+        await api.persistChatMessages(token, {
+          conversationId: cid,
+          messages: [
+            { role: "user", content: trimmed },
+            {
+              role: "assistant",
+              content: res.data.reply,
+              degraded: Boolean(res.data.degraded),
+            },
+          ],
+        });
+      } catch {
+        /* history optional — do not fail chat UX */
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t.common.error);
     } finally {

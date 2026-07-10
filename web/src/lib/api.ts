@@ -212,6 +212,29 @@ export const api = {
         body: JSON.stringify({ message, conversationId }),
       },
     ),
+  getChatConversation: (token: string, id: string) =>
+    request<
+      ApiEnvelope<{
+        id: string;
+        title: string | null;
+        messages: { id: string; role: string; content: string; degraded: boolean }[];
+      }>
+    >(API_URL, `/v1/chat/conversations/${id}`, {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+  persistChatMessages: (
+    token: string,
+    body: {
+      conversationId?: string;
+      messages: { role: "user" | "assistant" | "system"; content: string; degraded?: boolean }[];
+      title?: string;
+    },
+  ) =>
+    request<ApiEnvelope<{ conversationId: string }>>(API_URL, "/v1/chat/messages", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    }),
   createItinerary: (
     token: string,
     body: {
