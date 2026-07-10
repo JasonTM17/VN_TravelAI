@@ -1,0 +1,100 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.1.0)"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes
+        shell: bash
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          VER="${{ steps.tag.outputs.version }}"
+          {
+            echo "## TravelAI ${TAG}"
+            echo ""
+            echo "### Packages (GitHub Container Registry)"
+            echo ""
+            echo "| Service | Image |"
+            echo "|---------|-------|"
+            echo "| web | \`ghcr.io/jasontm17/travelai-web:latest\` · \`:${VER}\` |"
+            echo "| api | \`ghcr.io/jasontm17/travelai-api:latest\` · \`:${VER}\` |"
+            echo "| identity | \`ghcr.io/jasontm17/travelai-identity:latest\` · \`:${VER}\` |"
+            echo "| ai | \`ghcr.io/jasontm17/travelai-ai:latest\` · \`:${VER}\` |"
+            echo ""
+            echo "Also on Docker Hub: \`nguyenson1710/travelai-*\` (requires \`DOCKERHUB_*\` secrets)."
+            echo ""
+            echo "### Changelog"
+            echo ""
+            if [ -f CHANGELOG.md ]; then
+              awk -v ver="$VER" '
+                BEGIN { p=0 }
+                $0 ~ "^## \\[" ver "\\]" { p=1; print; next }
+                p && $0 ~ /^## \[/ { exit }
+                p { print }
+              ' CHANGELOG.md
+              echo ""
+              sed -n '/## \[Unreleased\]/,/^## \[/p' CHANGELOG.md | sed '$d' | sed '1d' || true
+            fi
+            echo ""
+            echo "### Pull"
+            echo ""
+            echo '```bash'
+            echo "docker pull ghcr.io/jasontm17/travelai-web:latest"
+            echo "docker pull ghcr.io/jasontm17/travelai-api:latest"
+            echo "docker pull ghcr.io/jasontm17/travelai-identity:latest"
+            echo "docker pull ghcr.io/jasontm17/travelai-ai:latest"
+            echo '```'
+          } > /tmp/notes.md
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file /tmp/notes.md --title "TravelAI ${TAG}"
+            echo "Updated existing release $TAG"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            gh release create "$TAG" \
+              --target "${{ github.sha }}" \
+              --title "TravelAI ${TAG}" \
+              --notes-file /tmp/notes.md \
+              --latest
+          else
+            gh release create "$TAG" \
+              --title "TravelAI ${TAG}" \
+              --notes-file /tmp/notes.md \
+              --verify-tag \
+              --latest
+          fi

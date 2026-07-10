@@ -16,7 +16,8 @@
   <img src="https://img.shields.io/badge/ai-DeepSeek_V4_Flash-4D6BFE" alt="AI" />
   <img src="https://img.shields.io/badge/db-PostgreSQL-336791?logo=postgresql" alt="DB" />
   <img src="https://img.shields.io/badge/search-Meilisearch-FF5CAA" alt="Search" />
-  <img src="https://img.shields.io/badge/docker-Hub-2496ED?logo=docker" alt="Docker" />
+  <img src="https://img.shields.io/badge/docker-Hub%20%2B%20GHCR-2496ED?logo=docker" alt="Docker" />
+  <a href="https://github.com/JasonTM17/VN_TravelAI/releases"><img src="https://img.shields.io/github/v/release/JasonTM17/VN_TravelAI?include_prereleases&label=release" alt="Release" /></a>
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
 </p>
 
@@ -53,7 +54,25 @@ More assets: [`docs/media/`](docs/media/README.md)
 - **AI concierge**: chat + itinerary via n8n/HMAC; **DeepSeek V4 Flash** when `DEEPSEEK_API_KEY` is set
 - **Admin**: `/vi/admin` reindex + audit log (`role=admin`)
 - **Mobile web**: responsive navbar, promo carousel, touch targets
-- **Containers**: multi-service Docker Compose + Docker Hub images
+- **Containers**: multi-service Docker Compose · **Docker Hub** + **GitHub Packages (GHCR)** · tagged **Releases**
+
+## Releases & packages
+
+| Surface | Where |
+|---------|--------|
+| **Releases** | [github.com/JasonTM17/VN_TravelAI/releases](https://github.com/JasonTM17/VN_TravelAI/releases) — created by `.github/workflows/release.yml` on `v*` tags |
+| **Packages (GHCR)** | Repo → Packages, or `ghcr.io/jasontm17/travelai-{web,api,identity,ai}` |
+| **Docker Hub** | `nguyenson1710/travelai-*` (needs repo secrets `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`) |
+
+```bash
+# GitHub Container Registry (shows under repo Packages)
+docker pull ghcr.io/jasontm17/travelai-web:latest
+docker pull ghcr.io/jasontm17/travelai-api:latest
+docker pull ghcr.io/jasontm17/travelai-identity:latest
+docker pull ghcr.io/jasontm17/travelai-ai:latest
+```
+
+Publish flow: push `main` → `docker-publish` builds/pushes Hub + GHCR · tag `v0.1.0` or Actions → **release** workflow creates GitHub Release.
 
 ## Architecture
 
@@ -71,12 +90,12 @@ flowchart LR
   ChatWebhook --> DeepSeek[DeepSeek API]
 ```
 
-| Service | Path | Host port (local overlay) | Docker Hub |
-|---------|------|---------------------------|------------|
-| web | [`web/`](web/README.md) | **53000** | `nguyenson1710/travelai-web` |
-| api | [`api/`](api/README.md) | **53001** | `nguyenson1710/travelai-api` |
-| identity | [`identity/`](identity/README.md) | **53002** | `nguyenson1710/travelai-identity` |
-| ai | [`ai/`](ai/README.md) | **53003** | `nguyenson1710/travelai-ai` |
+| Service | Path | Host port (local overlay) | GHCR | Docker Hub |
+|---------|------|---------------------------|------|------------|
+| web | [`web/`](web/README.md) | **53000** | `ghcr.io/jasontm17/travelai-web` | `nguyenson1710/travelai-web` |
+| api | [`api/`](api/README.md) | **53001** | `ghcr.io/jasontm17/travelai-api` | `nguyenson1710/travelai-api` |
+| identity | [`identity/`](identity/README.md) | **53002** | `ghcr.io/jasontm17/travelai-identity` | `nguyenson1710/travelai-identity` |
+| ai | [`ai/`](ai/README.md) | **53003** | `ghcr.io/jasontm17/travelai-ai` | `nguyenson1710/travelai-ai` |
 
 Contract: [`docs/openapi.yaml`](docs/openapi.yaml) · ADRs: [`docs/adr/`](docs/adr/) · Design: [`.stitch/`](.stitch/)
 

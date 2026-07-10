@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenAPI TypeScript types generation (`web` `pnpm generate:api`).
 - `scripts/smoke.ps1` local four-service smoke check.
 
+## [0.2.0] - 2026-07-10
+
+### Added
+
+- Dual image publish: Docker Hub + GitHub Container Registry (GHCR) for web/api/identity/ai.
+- GitHub Releases workflow (`.github/workflows/release.yml`) on `v*` tags / manual dispatch.
+- Full VI/EN i18n dictionary, locale metadata, catalog-driven promos, DeepSeek chat path.
+- Admin reindex/audit, multi-slide galleries, expanded seed marketplace.
+
 ## [0.1.0] - 2026-07-09
 
 ### Added
