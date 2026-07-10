@@ -135,3 +135,7 @@ mcps/
 docs/media/frames/
 docs/media/palette.png
 
+
+# Empty Stitch binary stubs
+.stitch/designs/*.html.bin
+
