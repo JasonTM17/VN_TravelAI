@@ -23,6 +23,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
+      styled-jsx:
+        specifier: ^5.1.6
+        version: 5.1.6(react@19.2.7)
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
