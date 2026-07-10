@@ -74,7 +74,21 @@ Full matrix: [environment-variables.md](./getting-started/environment-variables.
 ## E2E
 
 Local: stack up then `cd e2e && pnpm test`.  
-CI: set GitHub repo variable `E2E_ENABLED=true` to enable `.github/workflows/e2e.yml`.
+CI: set GitHub repo variable `E2E_ENABLED=true` to enable `.github/workflows/e2e.yml`:
+
+```bash
+gh variable set E2E_ENABLED --body "true"
+# requires Actions billing / runner minutes available
+```
+
+## Cookie (identity refresh)
+
+| Variable | Purpose |
+|----------|---------|
+| `COOKIE_DOMAIN` | Optional e.g. `.example.com` for multi-subdomain; empty = host-only |
+| `COOKIE_SAMESITE` | `Lax` \| `None` \| `Strict`; empty = auto (`None` in production) |
+
+Local multi-port compose: leave `COOKIE_DOMAIN` empty.
 
 ## Backup / restore (Postgres)
 
