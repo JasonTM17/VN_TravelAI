@@ -769,6 +769,123 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /v1/promos:
+    get:
+      tags: [destinations]
+      summary: List active marketing promos for home carousel
+      operationId: listPromos
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        slug: { type: string }
+                        titleVi: { type: string }
+                        titleEn: { type: string }
+                        badgeVi: { type: string }
+                        badgeEn: { type: string }
+                        imageUrl: { type: string }
+                        hrefPath: { type: string }
+
+  /v1/admin/reindex:
+    post:
+      tags: [health]
+      summary: Rebuild Meilisearch catalog indexes (admin)
+      operationId: adminReindex
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-Admin-Token
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reindexed
+        "403":
+          description: Forbidden
+
+  /v1/admin/audit:
+    get:
+      tags: [health]
+      summary: Recent admin audit log
+      operationId: adminAudit
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+        "403":
+          description: Forbidden
+
+  /v1/itineraries/persist:
+    post:
+      tags: [ai]
+      summary: Persist itinerary JSON for a user (api)
+      operationId: persistItinerary
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Saved
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/hooks/n8n-callback:
+    post:
+      tags: [ai]
+      summary: Inbound HMAC webhook probe (n8n → ai)
+      operationId: n8nCallback
+      servers:
+        - url: http://localhost:3003
+      parameters:
+        - name: X-Signature-SHA256
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Accepted
+        "401":
+          description: Invalid HMAC
+
 components:
   securitySchemes:
     bearerAuth:
@@ -874,6 +991,9 @@ components:
           type: string
         fullName:
           type: string
+        role:
+          type: string
+          description: user | admin
         createdAt:
           type: string
           format: date-time
