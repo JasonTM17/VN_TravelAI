@@ -43,7 +43,7 @@ export default async function HotelsPage({
         <span className="gradient-text">{t.nav.hotels}</span>
       </h1>
       <p className="mt-2 text-sm text-muted" data-testid="hotels-count">
-        {total} {locale === "en" ? "stays in catalog" : "chỗ nghỉ trong catalog"}
+        {total} {t.catalog.staysInCatalog}
       </p>
       {hotels.length === 0 ? (
         <div className="mt-8">

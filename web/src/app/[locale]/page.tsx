@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
 import { mapPromosToSlides } from "@/lib/promo-map";
 import { formatVnd } from "@/lib/utils";
-import { getDict, isLocale, type Locale } from "@/lib/i18n";
+import { getDict, isLocale, tFormat, type Locale } from "@/lib/i18n";
 
 export default async function HomePage({
   params,
@@ -73,11 +73,7 @@ export default async function HomePage({
     promos = mapPromosToSlides(promoRes.value.data, locale, `/${locale}`);
   }
 
-  const emptyHint = catalogError
-    ? locale === "en"
-      ? "Cannot reach API/catalog. Start Docker (postgres/redis) and api on :53001, then reseed."
-      : "Không kết nối được API/catalog. Bật Docker (postgres/redis) + api :53001 rồi seed lại."
-    : t.empty.description;
+  const emptyHint = catalogError ? t.catalog.apiDown : t.empty.description;
 
   const products = [
     { href: `/${locale}/hotels`, label: t.nav.hotels, icon: Building2, tone: "bg-[#e8f1fc] text-[#0064d2]" },
@@ -129,9 +125,11 @@ export default async function HomePage({
               data-hotels={catalogMeta.hotels}
               data-tours={catalogMeta.tours}
             >
-              {locale === "en"
-                ? `${catalogMeta.destinations} destinations · ${catalogMeta.hotels} hotels · ${catalogMeta.tours} tours live from catalog`
-                : `${catalogMeta.destinations} điểm đến · ${catalogMeta.hotels} khách sạn · ${catalogMeta.tours} tour từ catalog live`}
+              {tFormat(t.catalog.statsLine, {
+                dest: catalogMeta.destinations,
+                hotels: catalogMeta.hotels,
+                tours: catalogMeta.tours,
+              })}
             </p>
           ) : null}
         </section>
@@ -149,7 +147,7 @@ export default async function HomePage({
           <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
             <div className="min-w-0 flex-1">
               {promos.length >= 1 ? (
-                <PromoCarousel slides={promos} />
+                <PromoCarousel slides={promos} locale={locale} />
               ) : (
                 <EmptyState
                   title={t.empty.title}

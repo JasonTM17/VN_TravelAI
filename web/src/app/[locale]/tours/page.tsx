@@ -42,7 +42,7 @@ export default async function ToursPage({
       <Breadcrumb items={[{ label: t.nav.home, href: `/${locale}` }, { label: t.nav.tours }]} />
       <h1 className="animate-fade-in-up text-3xl font-bold text-[#1a1a1a]">{t.nav.tours}</h1>
       <p className="mt-2 text-sm text-muted" data-testid="tours-count">
-        {total} {locale === "en" ? "tours in catalog" : "tour trong catalog"}
+        {total} {t.catalog.toursInCatalog}
       </p>
       {tours.length === 0 ? (
         <div className="mt-8">

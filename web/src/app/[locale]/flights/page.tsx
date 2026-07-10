@@ -17,7 +17,7 @@ export default async function FlightsPage({
       <h1 className="animate-fade-in-up text-3xl font-bold">
         <span className="gradient-text">{t.nav.flights}</span>
       </h1>
-      <p className="mt-2 text-sm text-muted">Mock inventory — demo only</p>
+      <p className="mt-2 text-sm text-muted">{t.catalog.mockFlights}</p>
       <div className="mt-8">
         <FlightSearch locale={locale} />
       </div>

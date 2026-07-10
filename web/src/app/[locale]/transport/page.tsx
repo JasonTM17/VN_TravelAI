@@ -2,7 +2,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
 import { api } from "@/lib/api";
-import { getDict, isLocale, type Locale } from "@/lib/i18n";
+import { getDict, isLocale, localeTag, type Locale } from "@/lib/i18n";
 
 export default async function TransportPage({
   params,
@@ -35,15 +35,16 @@ export default async function TransportPage({
   return (
     <div data-testid="content-ready">
       <Breadcrumb
+        locale={locale}
         items={[
           { label: t.nav.home, href: `/${locale}` },
-          { label: locale === "en" ? "Transport" : "Xe bus / Tàu" },
+          { label: t.catalog.transport },
         ]}
       />
       <h1 className="animate-fade-in-up text-3xl font-bold">
-        <span className="gradient-text">{locale === "en" ? "Bus & train" : "Xe bus & tàu hoả"}</span>
+        <span className="gradient-text">{t.catalog.busTrain}</span>
       </h1>
-      <p className="mt-2 text-sm text-muted">Mock inventory — bus and train routes across Vietnam</p>
+      <p className="mt-2 text-sm text-muted">{t.catalog.mockTransport}</p>
       {rows.length === 0 ? (
         <div className="mt-8">
           <EmptyState title={t.empty.title} description={t.empty.description} ctaHref={`/${locale}`} ctaLabel={t.empty.cta} />
@@ -61,8 +62,9 @@ export default async function TransportPage({
                   {r.operator} · {r.fromCity} → {r.toCity}
                 </div>
                 <div className="text-sm text-muted">
-                  {r.from}–{r.to} · {new Date(r.departAt).toLocaleString(locale === "en" ? "en-US" : "vi-VN")} ·{" "}
-                  {Math.round(r.durationMin / 60)}h · {r.seatsLeft} seats
+                  {r.from}–{r.to} · {new Date(r.departAt).toLocaleString(localeTag(locale))} ·{" "}
+                  {Math.round(r.durationMin / 60)}
+                  {t.common.hoursShort} · {r.seatsLeft} {t.common.seats}
                 </div>
               </div>
               <PriceTag amount={r.priceVnd} locale={locale} />
