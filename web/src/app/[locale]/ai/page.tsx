@@ -1,7 +1,18 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { AiPlanner } from "@/components/ai-planner";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const t = getDict(isLocale(raw) ? raw : "vi");
+  return { title: t.ai.title, description: t.ai.subtitle };
+}
 
 export default async function AiPage({
   params,

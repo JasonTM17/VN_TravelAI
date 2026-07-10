@@ -1,6 +1,21 @@
+import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { AdminConsole } from "@/components/admin-console";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const t = getDict(isLocale(raw) ? raw : "vi");
+  return {
+    title: t.admin.title,
+    description: t.admin.subtitle,
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function AdminPage({
   params,

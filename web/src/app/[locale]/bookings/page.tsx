@@ -1,6 +1,17 @@
+import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { BookingsClient } from "@/components/bookings-client";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const t = getDict(isLocale(raw) ? raw : "vi");
+  return { title: t.booking.title, robots: { index: false, follow: false } };
+}
 
 export default async function BookingsPage({
   params,

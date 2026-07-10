@@ -88,7 +88,22 @@ async function main() {
   });
 
   app.get("/healthz", async () => ({ status: "ok", service: "ai" }));
-  app.get("/readyz", async () => ({ status: "ready", service: "ai" }));
+  app.get("/readyz", async () => {
+    let redisStatus: "up" | "down" = "down";
+    try {
+      const pong = await redis.ping();
+      if (pong === "PONG") redisStatus = "up";
+    } catch {
+      redisStatus = "down";
+    }
+    // Fail-open on redis: chat still degrades without rate limits
+    return {
+      status: "ready",
+      service: "ai",
+      redis: redisStatus,
+      degradedMode: config.AI_DEGRADED_MODE,
+    };
+  });
   app.get("/metrics", async (_req, reply) => {
     reply.header("content-type", register.contentType);
     return register.metrics();

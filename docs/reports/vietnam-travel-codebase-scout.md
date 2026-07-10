@@ -1,25 +1,28 @@
 # Vietnam Travel — Codebase Scout Report
 
 **Repo:** `VN_TravelAI` (GitHub `JasonTM17/VN_TravelAI`)  
-**Scout date:** 2026-07-10  
-**Mode:** read-only reconnaissance (no code/image/migration changes)  
+**Scout date:** 2026-07-10 (refreshed same day after hardening commits)  
+**Mode:** evidence from repository on `main`  
+**Product framing:** Vietnam travel marketplace (Traveloka-like UX) + DeepSeek concierge; product name in UI is **TravelAI**  
 **Source of truth:** repository files only  
 
 ---
 
 ## 1. Executive summary
 
-Vietnam Travel (product branding in UI: **TravelAI**) is a **service-split monorepo** with four Node 22 TypeScript apps (`web`, `api`, `identity`, `ai`), PostgreSQL (two logical DBs via init SQL), Redis, Meilisearch, optional MinIO/n8n, and a **local DeepSeek path** via HMAC-signed webhook mock.
+Vietnam Travel (UI brand: **TravelAI**) is a **service-split monorepo** targeting Vietnam (+ world) travel browsing/booking demo with an AI chat path. Stack: four Node 22 TypeScript apps (`web`, `api`, `identity`, `ai`), PostgreSQL (two DBs), Redis, Meilisearch, optional MinIO/n8n, local DeepSeek via HMAC `chat-webhook`.
 
-| Area | Verdict |
-|------|---------|
-| Local demo MVP | **Usable** — compose local overlay, seed catalog, SSR catalog, mock book+pay, AI chat with degrade |
-| Production-ready | **No** — soft JWT/demo seed, open CORS on identity/ai, Meili filter injection risk, tokens in `localStorage`, CSP localhost-only, CI soft gates, Actions billing may block image publish |
-| Chatbot DeepSeek | **PARTIAL** — live path via `scripts/mock-n8n-webhook.mjs` + `scripts/lib/deepseek-travel-chat.mjs`; **no** RAG, tool-calling, chat message persistence, streaming |
-| Payment | **MOCK** only (`pay` outcome success/fail in API) |
-| Traveloka domains | **OUT_OF_SCOPE** — design DNA only (Stitch / copy); no Traveloka APIs |
+| Area | Verdict (post-hardening `main`) |
+|------|----------------------------------|
+| Product fit | Traveloka-like catalog + locale VI/EN + floating chatbot; **not** a Traveloka integration |
+| Local demo MVP | **Usable** — compose local 53000–53003, seed, SSR catalog, mock booking, DeepSeek or degrade |
+| Security baseline | **Improved** — JWT PEM fail-closed in prod, SEED_DEMO gate, CORS allowlist identity/ai, Meili filter sanitize, dual-JWKS bearer, refresh client, raw HMAC body |
+| Production-ready | **Still partial** — tokens still in `localStorage`, mock pay only, Docker install not frozen, e2e not in CI, OpenAPI client may lag YAML, no real inventory/PSP |
+| Chatbot DeepSeek | **PARTIAL** — live via webhook + `deepseek-travel-chat.mjs`; **no** RAG, tool-calling to catalog/booking, chat DB, streaming |
+| Payment | **MOCK** only |
+| Traveloka domains | **OUT_OF_SCOPE** |
 
-**Overall maturity:** production-shaped scaffolding with a working local marketplace demo; security and ops gates block real production without hardening.
+**Overall maturity:** hardened local marketplace + AI concierge demo; remaining work is contract/CI/Docker freeze and product decisions (PSP, tool-calling), not greenfield.
 
 ---
 

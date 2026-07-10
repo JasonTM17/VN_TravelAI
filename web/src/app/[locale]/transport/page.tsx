@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
 import { api } from "@/lib/api";
 import { getDict, isLocale, localeTag, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const t = getDict(isLocale(raw) ? raw : "vi");
+  return { title: t.catalog.busTrain, description: t.meta.description };
+}
 
 export default async function TransportPage({
   params,

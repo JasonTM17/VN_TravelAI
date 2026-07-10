@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { DestinationCard } from "@/components/destination-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const t = getDict(isLocale(raw) ? raw : "vi");
+  return { title: t.nav.explore, description: t.meta.description };
+}
 
 export default async function ExplorePage({
   params,

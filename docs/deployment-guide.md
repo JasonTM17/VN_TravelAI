@@ -32,7 +32,12 @@ Prod overlay:
 | Docker Hub | `nguyenson1710/travelai-{web,api,identity,ai}` |
 | GHCR | `ghcr.io/jasontm17/travelai-{web,api,identity,ai}` |
 
-Web `NEXT_PUBLIC_*` is bake-time. Rebuild web image per environment with correct public URLs / `NEXT_PUBLIC_CSP_CONNECT_SRC`.
+Dockerfiles use `pnpm install --frozen-lockfile`. Web `NEXT_PUBLIC_*` is bake-time — rebuild web image per environment with correct public URLs / `NEXT_PUBLIC_CSP_CONNECT_SRC`.
+
+## E2E
+
+Local: stack up then `cd e2e && pnpm test`.  
+CI: set GitHub repo variable `E2E_ENABLED=true` to enable `.github/workflows/e2e.yml`.
 
 ## Backup / restore (Postgres)
 

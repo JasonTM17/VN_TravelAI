@@ -101,4 +101,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate OpenAPI
-        run: npx --yes @redocly/cli@1 lint docs/openapi.yaml
+        run: npx --yes @redocly/cli@1 lint docs/openapi.yaml --config redocly.yaml

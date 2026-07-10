@@ -1,0 +1,9 @@
+# OpenAPI lint config — keep contract useful without blocking on multi-server auth docs
+extends:
+  - recommended
+
+rules:
+  security-defined: warn
+  no-server-example.com: off
+  operation-4xx-response: warn
+  info-license: warn

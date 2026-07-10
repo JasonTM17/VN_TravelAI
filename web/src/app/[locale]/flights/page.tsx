@@ -1,6 +1,17 @@
+import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FlightSearch } from "@/components/flight-search";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const t = getDict(isLocale(raw) ? raw : "vi");
+  return { title: t.nav.flights, description: t.meta.description };
+}
 
 export default async function FlightsPage({
   params,
