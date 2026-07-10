@@ -50,9 +50,12 @@ services:
       timeout: 5s
       retries: 5
 
+  # Optional object storage — app does not use MinIO today (DISCONNECTED).
+  # Enable: docker compose --profile storage up -d minio
   minio:
     image: minio/minio:latest
     container_name: travelai-minio
+    profiles: ["storage"]
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
