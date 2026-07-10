@@ -9,6 +9,7 @@ import {
   normalizeImageList,
   prevSlideIndex,
 } from "@/lib/gallery-slides";
+import { getDict, tFormat, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
   className?: string;
   aspectClass?: string;
   priority?: boolean;
+  locale?: Locale;
 };
 
 export function ImageGallery({
@@ -27,7 +29,9 @@ export function ImageGallery({
   className,
   aspectClass = "aspect-[4/3]",
   priority = false,
+  locale = "vi",
 }: Props) {
+  const t = getDict(locale);
   const slides = normalizeImageList(images, fallback);
   const [index, setIndex] = useState(0);
   const safe = clampSlideIndex(index, slides.length);
@@ -62,7 +66,7 @@ export function ImageGallery({
         <>
           <button
             type="button"
-            aria-label="Previous image"
+            aria-label={t.common.prevImage}
             className="absolute left-2 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm hover:bg-black/60"
             onClick={goPrev}
             data-testid="gallery-prev"
@@ -71,7 +75,7 @@ export function ImageGallery({
           </button>
           <button
             type="button"
-            aria-label="Next image"
+            aria-label={t.common.nextImage}
             className="absolute right-2 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm hover:bg-black/60"
             onClick={goNext}
             data-testid="gallery-next"
@@ -83,7 +87,7 @@ export function ImageGallery({
               <button
                 key={i}
                 type="button"
-                aria-label={`Go to image ${i + 1}`}
+                aria-label={tFormat(t.common.goToImage, { n: i + 1 })}
                 aria-current={i === safe}
                 className={cn(
                   "h-2.5 w-2.5 rounded-full transition",

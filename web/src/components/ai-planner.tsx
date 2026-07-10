@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { api, type Itinerary } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth-storage";
-import { getDict, type Locale } from "@/lib/i18n";
+import { getDict, tFormat, type Locale } from "@/lib/i18n";
 import { formatVnd } from "@/lib/utils";
 
 export function AiPlanner({ locale }: { locale: Locale }) {
@@ -98,15 +98,15 @@ export function AiPlanner({ locale }: { locale: Locale }) {
         <h2 className="font-semibold">{t.ai.generate}</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <label className="text-sm sm:col-span-1">
-            Destination
+            {t.ai.destination}
             <input className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={destination} onChange={(e) => setDestination(e.target.value)} />
           </label>
           <label className="text-sm">
-            Days
+            {t.ai.days}
             <input type="number" min={1} max={21} className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={days} onChange={(e) => setDays(Number(e.target.value))} />
           </label>
           <label className="text-sm">
-            Budget (VND)
+            {t.ai.budget}
             <input type="number" className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={budget} onChange={(e) => setBudget(Number(e.target.value))} />
           </label>
         </div>
@@ -154,7 +154,7 @@ export function AiPlanner({ locale }: { locale: Locale }) {
             {itinerary.days?.map((d) => (
               <li key={d.day} className="rounded-xl border border-border/80 bg-background p-4">
                 <div className="font-semibold text-ocean">
-                  Day {d.day} — {d.title}
+                  {tFormat(t.common.dayLabel, { n: d.day })} — {d.title}
                 </div>
                 <ul className="mt-2 space-y-2 text-sm">
                   {d.activities?.map((a, idx) => (
@@ -172,7 +172,7 @@ export function AiPlanner({ locale }: { locale: Locale }) {
           </ol>
           {itinerary.hotelSuggestions?.length ? (
             <div className="mt-4">
-              <div className="text-sm font-medium">Hotel suggestions</div>
+              <div className="text-sm font-medium">{t.common.hotelSuggestions}</div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {itinerary.hotelSuggestions.map((h) => (
                   <Link

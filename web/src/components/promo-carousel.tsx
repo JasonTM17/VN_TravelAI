@@ -6,9 +6,17 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { PromoSlideView } from "@/lib/promo-map";
 import { nextSlideIndex, prevSlideIndex } from "@/lib/gallery-slides";
+import { getDict, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-export function PromoCarousel({ slides }: { slides: PromoSlideView[] }) {
+export function PromoCarousel({
+  slides,
+  locale = "vi",
+}: {
+  slides: PromoSlideView[];
+  locale?: Locale;
+}) {
+  const t = getDict(locale);
   const [index, setIndex] = useState(0);
   if (slides.length === 0) return null;
   const safe = ((index % slides.length) + slides.length) % slides.length;
@@ -30,7 +38,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlideView[] }) {
           <div className="mt-3 flex items-center justify-between gap-2">
             <button
               type="button"
-              aria-label="Previous promo"
+              aria-label={t.common.prevPromo}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white shadow-sm"
               onClick={() => setIndex((i) => prevSlideIndex(i, slides.length))}
             >
@@ -46,7 +54,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlideView[] }) {
             </div>
             <button
               type="button"
-              aria-label="Next promo"
+              aria-label={t.common.nextPromo}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white shadow-sm"
               onClick={() => setIndex((i) => nextSlideIndex(i, slides.length))}
             >

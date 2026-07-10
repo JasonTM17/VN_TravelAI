@@ -5,8 +5,7 @@ import { api, type Flight } from "@/lib/api";
 import { BookButton } from "@/components/book-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatVnd } from "@/lib/utils";
-import type { Locale } from "@/lib/i18n";
-import { getDict } from "@/lib/i18n";
+import { getDict, localeTag, type Locale } from "@/lib/i18n";
 
 export function FlightSearch({ locale }: { locale: Locale }) {
   const t = getDict(locale);
@@ -40,15 +39,15 @@ export function FlightSearch({ locale }: { locale: Locale }) {
         }}
       >
         <label className="text-sm">
-          From
+          {t.common.flightFrom}
           <input className="mt-1 w-full rounded-xl border border-border px-3 py-2 uppercase" value={from} onChange={(e) => setFrom(e.target.value)} />
         </label>
         <label className="text-sm">
-          To
+          {t.common.flightTo}
           <input className="mt-1 w-full rounded-xl border border-border px-3 py-2 uppercase" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
         <label className="text-sm">
-          Date
+          {t.common.flightDate}
           <input type="date" className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <button type="submit" className="self-end rounded-xl bg-ocean py-2.5 font-medium text-white shadow-glow">
@@ -67,7 +66,7 @@ export function FlightSearch({ locale }: { locale: Locale }) {
                 {f.airline} · {f.flightNumber}
               </div>
               <div className="text-sm text-muted">
-                {f.from} → {f.to} · {new Date(f.departAt).toLocaleString(locale === "en" ? "en-US" : "vi-VN")} · {f.cabin}
+                {f.from} → {f.to} · {new Date(f.departAt).toLocaleString(localeTag(locale))} · {f.cabin}
               </div>
             </div>
             <div className="flex items-center gap-4">

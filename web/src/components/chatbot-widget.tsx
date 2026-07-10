@@ -95,7 +95,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
             <button
               type="button"
               className="rounded-md p-1 hover:bg-white/15"
-              aria-label="Close"
+              aria-label={t.chatbot.close}
               onClick={() => setOpen(false)}
             >
               <X className="h-5 w-5" />
