@@ -26,6 +26,9 @@ Canonical contract: [`docs/openapi.yaml`](../docs/openapi.yaml).
 | MEILI_MASTER_KEY | no | dev key | Meilisearch key |
 | IDENTITY_JWKS_URL | yes | — | JWKS endpoint |
 | CORS_ORIGINS | no | http://localhost:3000 | Allowed origins |
+| ADMIN_REINDEX_TOKEN | no* | — | Required for `POST /v1/admin/reindex` (min 16 chars). Pair with user Bearer JWT + header `X-Admin-Token`. |
+
+\*Required only when calling admin reindex; boot-time reindex does not need it.
 
 ## Run locally
 
@@ -40,10 +43,15 @@ pnpm dev
 
 ```bash
 pnpm test
+# search uniqueness (api + meili up after reseed/reindex):
+node ../scripts/check-search-unique.mjs http://127.0.0.1:53001 Hoi
 ```
 
 ## Runbook
 
-- **Reindex Meilisearch:** `POST /v1/admin/reindex`
-- **Reseed catalog:** `pnpm seed` then reindex
+- **Reindex Meilisearch (clean rebuild):**  
+  `POST /v1/admin/reindex` with `Authorization: Bearer <user JWT>` and `X-Admin-Token: <ADMIN_REINDEX_TOKEN>`.  
+  Implementation deletes and recreates `destinations` / `hotels` / `tours` indexes so reseeded UUIDs never leave stale hits.
+- **Reseed catalog:** `pnpm seed` then wait for boot reindex (~5s) or call admin reindex.
 - **Reset DB:** drop `travelai` database and migrate again
+
