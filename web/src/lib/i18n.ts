@@ -75,6 +75,7 @@ export const dict = {
       submitChangePassword: "Cập nhật mật khẩu",
       changePasswordOk: "Đã đổi mật khẩu. Vui lòng đăng nhập lại nếu cần.",
       passwordMismatch: "Mật khẩu xác nhận không khớp",
+      accountSubtitle: "Quản lý bảo mật tài khoản TravelAI của bạn.",
     },
     ai: {
       title: "TravelAI Concierge",
@@ -83,6 +84,9 @@ export const dict = {
       generate: "Tạo lịch trình",
       chat: "Gửi",
       degraded: "Chế độ dự phòng (n8n offline)",
+      destination: "Điểm đến",
+      days: "Số ngày",
+      budget: "Ngân sách (VND)",
     },
     chatbot: {
       title: "TravelAI Concierge",
@@ -110,6 +114,57 @@ export const dict = {
       loading: "Đang tải...",
       error: "Đã xảy ra lỗi",
       retry: "Thử lại",
+      items: "mục",
+      page: "Trang",
+      prev: "Trước",
+      next: "Sau",
+      remove: "Xóa",
+      menu: "Menu",
+      close: "Đóng",
+      reviews: "Đánh giá",
+      pagination: "Phân trang",
+      breadcrumb: "Đường dẫn",
+      primaryNav: "Điều hướng chính",
+      prevImage: "Ảnh trước",
+      nextImage: "Ảnh sau",
+      goToImage: "Tới ảnh {n}",
+      prevPromo: "Khuyến mãi trước",
+      nextPromo: "Khuyến mãi sau",
+      seats: "chỗ",
+      hoursShort: "giờ",
+      somethingWrong: "Đã xảy ra lỗi",
+      hotelSuggestions: "Gợi ý khách sạn",
+      dayLabel: "Ngày {n}",
+      flightFrom: "Điểm đi",
+      flightTo: "Điểm đến",
+      flightDate: "Ngày bay",
+    },
+    footer: {
+      about: "Về TravelAI",
+      support: "Hỗ trợ",
+      bookingGuide: "Hướng dẫn đặt chỗ",
+      privacy: "Chính sách bảo mật",
+      terms: "Điều khoản sử dụng",
+      credit: "Traveloka DNA · Stitch WanderViet",
+    },
+    catalog: {
+      staysInCatalog: "chỗ nghỉ trong catalog",
+      toursInCatalog: "tour trong catalog",
+      statsLine: "{dest} điểm đến · {hotels} khách sạn · {tours} tour từ catalog live",
+      busTrain: "Xe bus & tàu hoả",
+      transport: "Xe bus / Tàu",
+      mockTransport: "Kho mock — tuyến bus & tàu khắp Việt Nam",
+      mockFlights: "Kho mock — chỉ dùng demo",
+      wishlistLogin: "Đăng nhập để xem danh sách yêu thích.",
+      wishlistEmpty: "Chưa có mục yêu thích. Hãy thả tim trên khách sạn hoặc tour.",
+      apiDown:
+        "Không kết nối được API/catalog. Bật Docker (postgres/redis) + api :53001 rồi seed lại.",
+    },
+    meta: {
+      titleDefault: "TravelAI — Lên kế hoạch chuyến đi thông minh",
+      description:
+        "TravelAI — du lịch Việt Nam & thế giới, khách sạn, tour, chuyến bay mock, AI trip planner.",
+      ogDescription: "Lên kế hoạch chuyến đi thông minh — Việt Nam & Thế giới",
     },
   },
   en: {
@@ -182,6 +237,7 @@ export const dict = {
       submitChangePassword: "Update password",
       changePasswordOk: "Password updated. Sign in again if prompted.",
       passwordMismatch: "Confirmation does not match",
+      accountSubtitle: "Manage security settings for your TravelAI account.",
     },
     ai: {
       title: "TravelAI Concierge",
@@ -190,6 +246,9 @@ export const dict = {
       generate: "Generate itinerary",
       chat: "Send",
       degraded: "Degraded mode (n8n offline)",
+      destination: "Destination",
+      days: "Days",
+      budget: "Budget (VND)",
     },
     chatbot: {
       title: "TravelAI Concierge",
@@ -217,6 +276,57 @@ export const dict = {
       loading: "Loading...",
       error: "Something went wrong",
       retry: "Retry",
+      items: "items",
+      page: "Page",
+      prev: "Previous",
+      next: "Next",
+      remove: "Remove",
+      menu: "Menu",
+      close: "Close",
+      reviews: "Reviews",
+      pagination: "Pagination",
+      breadcrumb: "Breadcrumb",
+      primaryNav: "Primary",
+      prevImage: "Previous image",
+      nextImage: "Next image",
+      goToImage: "Go to image {n}",
+      prevPromo: "Previous promo",
+      nextPromo: "Next promo",
+      seats: "seats",
+      hoursShort: "h",
+      somethingWrong: "Something went wrong",
+      hotelSuggestions: "Hotel suggestions",
+      dayLabel: "Day {n}",
+      flightFrom: "From",
+      flightTo: "To",
+      flightDate: "Date",
+    },
+    footer: {
+      about: "About",
+      support: "Support",
+      bookingGuide: "Booking guide",
+      privacy: "Privacy policy",
+      terms: "Terms of use",
+      credit: "Traveloka DNA · Stitch WanderViet",
+    },
+    catalog: {
+      staysInCatalog: "stays in catalog",
+      toursInCatalog: "tours in catalog",
+      statsLine: "{dest} destinations · {hotels} hotels · {tours} tours live from catalog",
+      busTrain: "Bus & train",
+      transport: "Bus / Train",
+      mockTransport: "Mock inventory — bus and train routes across Vietnam",
+      mockFlights: "Mock inventory — demo only",
+      wishlistLogin: "Log in to see your wishlist.",
+      wishlistEmpty: "No saved items yet. Heart a hotel or tour to start.",
+      apiDown:
+        "Cannot reach API/catalog. Start Docker (postgres/redis) and api on :53001, then reseed.",
+    },
+    meta: {
+      titleDefault: "TravelAI — Plan smarter trips",
+      description:
+        "TravelAI — Vietnam & world travel: hotels, tours, mock flights, AI trip planner.",
+      ogDescription: "Plan smarter trips — Vietnam & the world",
     },
   },
 } as const;
@@ -229,4 +339,16 @@ export function getDict(locale: string): Dictionary {
 
 export function isLocale(v: string): v is Locale {
   return v === "vi" || v === "en";
+}
+
+/** Replace `{key}` placeholders in dictionary templates. */
+export function tFormat(template: string, vars: Record<string, string | number>): string {
+  return Object.entries(vars).reduce(
+    (out, [key, value]) => out.replaceAll(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+export function localeTag(locale: string): string {
+  return locale === "en" ? "en-US" : "vi-VN";
 }
