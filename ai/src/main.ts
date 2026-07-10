@@ -7,7 +7,7 @@ import { z } from "zod";
 import { collectDefaultMetrics, Registry, Counter } from "prom-client";
 import { loadConfig } from "./config.js";
 import { createAuthGuard } from "./lib/auth.js";
-import { callN8nWebhook } from "./lib/n8n.js";
+import { callN8nWebhook, TRAVEL_CHAT_WEBHOOK_TIMEOUT_MS } from "./lib/n8n.js";
 import { degradedChatReply, degradedItinerary } from "./lib/degraded.js";
 import { requireHmac } from "./lib/hmac-guard.js";
 
@@ -108,6 +108,7 @@ async function main() {
     }
 
     const conversationId = parsed.data.conversationId ?? randomUUID();
+    // DeepSeek path can take ~45s; must outlive webhook LLM timeout (not default 20s).
     const n8n = await callN8nWebhook<{ reply?: string; message?: string }>(
       config,
       "travel-chat",
@@ -117,6 +118,7 @@ async function main() {
         message: parsed.data.message,
         persona: "TravelAI Concierge",
       },
+      TRAVEL_CHAT_WEBHOOK_TIMEOUT_MS,
     );
 
     if (!n8n.ok) {

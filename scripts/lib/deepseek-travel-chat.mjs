@@ -110,6 +110,8 @@ export async function callDeepSeekTravelChat(opts) {
         messages: buildChatMessages(opts.message),
         temperature: 0.7,
         max_tokens: 900,
+        // V4 Flash defaults thinking ON — disable for fast concierge + reliable content
+        thinking: { type: "disabled" },
       }),
       signal: controller.signal,
     });

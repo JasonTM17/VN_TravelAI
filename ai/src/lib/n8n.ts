@@ -1,6 +1,9 @@
 import type { AppConfig } from "../config.js";
 import { signBody } from "./hmac.js";
 
+/** Must exceed DeepSeek webhook wall-clock (~45s) so AI does not abort first. */
+export const TRAVEL_CHAT_WEBHOOK_TIMEOUT_MS = 55_000;
+
 export async function callN8nWebhook<T>(
   config: AppConfig,
   path: string,

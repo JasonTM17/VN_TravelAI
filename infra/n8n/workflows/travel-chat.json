@@ -38,7 +38,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": {{ JSON.stringify($json.model) }},\n  \"temperature\": 0.7,\n  \"max_tokens\": 900,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are TravelAI Concierge — Vietnam & world travel advisor in the TravelAI marketplace. Answer in the user language. Be specific on budget (VND), days, hotels, tours, seasons. Concise 80-220 words. Never claim real card charge or live GDS booking.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.message) }}\n    }\n  ]\n}",
+        "jsonBody": "={\n  \"model\": {{ JSON.stringify($json.model) }},\n  \"temperature\": 0.7,\n  \"max_tokens\": 900,\n  \"thinking\": { \"type\": \"disabled\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are TravelAI Concierge — Vietnam & world travel advisor in the TravelAI marketplace. Answer in the user language. Be specific on budget (VND), days, hotels, tours, seasons. Concise 80-220 words. Never claim real card charge or live GDS booking.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.message) }}\n    }\n  ]\n}",
         "options": {
           "timeout": 45000
         }

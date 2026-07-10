@@ -86,6 +86,7 @@ describe("callDeepSeekTravelChat (shipped entry with injectable fetch)", () => {
     };
     let sawAuth = false;
     let sawModel = "";
+    let sawThinking = null;
     const r = await callDeepSeekTravelChat({
       apiKey: "test-key-not-real",
       message: "3 ngày Đà Nẵng budget 8 triệu couple",
@@ -95,7 +96,9 @@ describe("callDeepSeekTravelChat (shipped entry with injectable fetch)", () => {
         sawAuth = String(init.headers.authorization || "").startsWith("Bearer ");
         const body = JSON.parse(init.body);
         sawModel = body.model;
+        sawThinking = body.thinking;
         assert.equal(body.messages[1].content.includes("Đà Nẵng"), true);
+        assert.deepEqual(body.thinking, { type: "disabled" });
         return {
           ok: true,
           status: 200,
@@ -107,12 +110,34 @@ describe("callDeepSeekTravelChat (shipped entry with injectable fetch)", () => {
     });
     assert.equal(sawAuth, true);
     assert.equal(sawModel, "deepseek-v4-flash");
+    assert.deepEqual(sawThinking, { type: "disabled" });
     assert.equal(r.ok, true);
     if (r.ok) {
       assert.ok(r.reply.includes("Đà Nẵng"));
       assert.ok(r.reply.includes("8 triệu") || r.reply.includes("Hội An"));
       assert.equal(isLegacyTemplateReply(r.reply), false);
     }
+  });
+
+  it("request body always disables thinking mode for V4 Flash concierge", async () => {
+    let body;
+    await callDeepSeekTravelChat({
+      apiKey: "k",
+      message: "hi",
+      fetchImpl: async (_url, init) => {
+        body = JSON.parse(init.body);
+        return {
+          ok: true,
+          status: 200,
+          async text() {
+            return JSON.stringify({
+              choices: [{ message: { content: "Gợi ý ngắn: Hội An 2 ngày." } }],
+            });
+          },
+        };
+      },
+    });
+    assert.deepEqual(body.thinking, { type: "disabled" });
   });
 
   it("returns ok:false on provider HTTP error", async () => {

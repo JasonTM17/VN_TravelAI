@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { signBody, verifySignature } from "./hmac.js";
 import { requireHmac } from "./hmac-guard.js";
-import { callN8nWebhook } from "./n8n.js";
+import { callN8nWebhook, TRAVEL_CHAT_WEBHOOK_TIMEOUT_MS } from "./n8n.js";
 import type { AppConfig } from "../config.js";
 import { degradedChatReply, degradedItinerary } from "./degraded.js";
 
@@ -77,10 +77,23 @@ describe("n8n client degrade path", () => {
     LOG_LEVEL: "silent",
   } as AppConfig;
 
+  it("travel-chat timeout constant outlives DeepSeek webhook (~45s)", () => {
+    expect(TRAVEL_CHAT_WEBHOOK_TIMEOUT_MS).toBeGreaterThanOrEqual(50_000);
+  });
+
   it("returns ok:false when n8n is unreachable (no throw)", async () => {
     const result = await callN8nWebhook(baseConfig, "travel-chat", { message: "hi" }, 500);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason.length).toBeGreaterThan(0);
+  });
+
+  it("honors explicit timeoutMs on callN8nWebhook (shipped 4th arg used by /v1/chat)", async () => {
+    const started = Date.now();
+    const result = await callN8nWebhook(baseConfig, "travel-chat", { message: "hi" }, 300);
+    const elapsed = Date.now() - started;
+    expect(result.ok).toBe(false);
+    // Should not wait for the 20s default when a short timeout is passed
+    expect(elapsed).toBeLessThan(5_000);
   });
 
   it("forced degraded mode short-circuits without network", async () => {
