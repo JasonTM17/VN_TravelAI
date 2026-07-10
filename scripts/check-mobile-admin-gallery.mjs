@@ -56,6 +56,14 @@ const apiMain = fs.readFileSync(path.join(root, "api/src/main.ts"), "utf8");
 ok("api admin reindex route", /\/v1\/admin\/reindex/.test(apiMain));
 ok("api admin audit route", /\/v1\/admin\/audit/.test(apiMain));
 
+const serviceUrl = fs.readFileSync(path.join(root, "web/src/lib/service-url.ts"), "utf8");
+ok("service-url SSR internal helper", /resolveServiceBaseUrl/.test(serviceUrl));
+const apiTs = fs.readFileSync(path.join(root, "web/src/lib/api.ts"), "utf8");
+ok("api.ts uses API_INTERNAL_URL path", /API_INTERNAL_URL/.test(apiTs) && /resolveServiceBaseUrl/.test(apiTs));
+const compose = fs.readFileSync(path.join(root, "docker-compose.yml"), "utf8");
+ok("compose sets API_INTERNAL_URL for web", /API_INTERNAL_URL/.test(compose));
+
+
 const failed = checks.some((c) => !c.pass);
 if (failed) {
   console.error("STRUCTURAL CHECK FAILED");

@@ -216,10 +216,15 @@ services:
       - "${WEB_PORT:-3000}:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
+      # Browser-facing (baked into client bundle via build args)
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_PUBLIC_IDENTITY_URL: ${NEXT_PUBLIC_IDENTITY_URL:-http://localhost:3002}
       NEXT_PUBLIC_AI_URL: ${NEXT_PUBLIC_AI_URL:-http://localhost:3003}
       NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-vi}
+      # Server-side SSR fetch inside compose network (must not be localhost)
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:3001}
+      IDENTITY_INTERNAL_URL: ${IDENTITY_INTERNAL_URL:-http://identity:3002}
+      AI_INTERNAL_URL: ${AI_INTERNAL_URL:-http://ai:3003}
     depends_on:
       api:
         condition: service_healthy

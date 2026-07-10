@@ -89,10 +89,15 @@ services:
     ports: !override
       - "53000:3000"
     environment:
+      # Host browser URLs (NEXT_PUBLIC baked at build)
       NEXT_PUBLIC_API_URL: http://localhost:53001
       NEXT_PUBLIC_IDENTITY_URL: http://localhost:53002
       NEXT_PUBLIC_AI_URL: http://localhost:53003
       NEXT_PUBLIC_DEFAULT_LOCALE: vi
+      # SSR inside compose network — fixes empty catalog on /vi/hotels/*
+      API_INTERNAL_URL: http://api:3001
+      IDENTITY_INTERNAL_URL: http://identity:3002
+      AI_INTERNAL_URL: http://ai:3003
     build:
       context: ./web
       dockerfile: Dockerfile
@@ -101,4 +106,5 @@ services:
         NEXT_PUBLIC_IDENTITY_URL: http://localhost:53002
         NEXT_PUBLIC_AI_URL: http://localhost:53003
         NEXT_PUBLIC_DEFAULT_LOCALE: vi
+
 

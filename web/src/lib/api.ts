@@ -1,7 +1,22 @@
-// Defaults match docker-compose.local.yml host ports (not container 300x).
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:53001";
-const IDENTITY_URL = process.env.NEXT_PUBLIC_IDENTITY_URL ?? "http://127.0.0.1:53002";
-const AI_URL = process.env.NEXT_PUBLIC_AI_URL ?? "http://127.0.0.1:53003";
+import { resolveServiceBaseUrl } from "./service-url";
+
+// Browser: NEXT_PUBLIC_* host ports (e.g. localhost:53001).
+// Server/SSR in Docker: API_INTERNAL_URL=http://api:3001 (compose network).
+const API_URL = resolveServiceBaseUrl({
+  internal: process.env.API_INTERNAL_URL,
+  publicUrl: process.env.NEXT_PUBLIC_API_URL,
+  fallback: "http://127.0.0.1:53001",
+});
+const IDENTITY_URL = resolveServiceBaseUrl({
+  internal: process.env.IDENTITY_INTERNAL_URL,
+  publicUrl: process.env.NEXT_PUBLIC_IDENTITY_URL,
+  fallback: "http://127.0.0.1:53002",
+});
+const AI_URL = resolveServiceBaseUrl({
+  internal: process.env.AI_INTERNAL_URL,
+  publicUrl: process.env.NEXT_PUBLIC_AI_URL,
+  fallback: "http://127.0.0.1:53003",
+});
 
 export type ApiEnvelope<T> = { success: boolean; data: T; meta?: { page: number; limit: number; total: number } };
 
