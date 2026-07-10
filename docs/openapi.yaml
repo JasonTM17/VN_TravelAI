@@ -715,6 +715,87 @@ paths:
                       degraded:
                         type: boolean
 
+  /v1/chat/conversations:
+    get:
+      tags: [bookings]
+      summary: List chat conversations for current user
+      operationId: listChatConversations
+      servers:
+        - url: http://localhost:3001
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/chat/conversations/{id}:
+    get:
+      tags: [bookings]
+      summary: Get chat conversation with messages
+      operationId: getChatConversation
+      servers:
+        - url: http://localhost:3001
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: OK
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/chat/messages:
+    post:
+      tags: [bookings]
+      summary: Append chat messages (persist after AI reply)
+      operationId: persistChatMessages
+      servers:
+        - url: http://localhost:3001
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                conversationId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    required: [role, content]
+                    properties:
+                      role:
+                        type: string
+                        enum: [user, assistant, system]
+                      content:
+                        type: string
+                      degraded:
+                        type: boolean
+      responses:
+        "201":
+          description: Created
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /v1/itineraries:
     post:
       tags: [ai]
@@ -1217,7 +1298,7 @@ components:
       properties:
         itemType:
           type: string
-          enum: [hotel, tour, flight]
+          enum: [hotel, tour, flight, transport]
         itemId:
           type: string
           format: uuid
@@ -1249,6 +1330,7 @@ components:
           enum: [draft, pending_payment, confirmed, cancelled]
         itemType:
           type: string
+          enum: [hotel, tour, flight, transport]
         itemId:
           type: string
         totalVnd:

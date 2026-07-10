@@ -1,50 +1,46 @@
 # Project roadmap — residual
 
-**Purpose:** Việc còn lại sau hardening pass trên `main` (`e653338`..`e715b96`).  
-**Không** phải timeline marketing.  
-**Source:** scout `docs/reports/vietnam-travel-codebase-scout.md`
+**Purpose:** Trạng thái sau product residual cook trên `main`.  
+**Last verified:** commits through tool-calling + chat history (2026-07-10).
 
-## 1. Đã hoàn thành (engineering baseline)
+## 1. Engineering baseline (hardening) — DONE
 
 - JWT PEM fail-closed + SEED_DEMO gate  
-- CORS allowlist identity/api/ai  
-- Meili filter sanitize  
-- Web session refresh on 401 + CSP connect-src env  
-- Booking two-step mock pay + cancel state machine  
-- OpenAPI expand + Redocly CI + generated client  
-- Docker frozen-lockfile + prod compose overlay  
-- raw HMAC body, request-id, SEO surfaces (sitemap/robots/not-found)  
-- CI unit tests hard-fail  
+- CORS allowlist · Meili sanitize · client refresh  
+- Booking state machine + two-step mock pay  
+- OpenAPI + Docker frozen + SEO surfaces · request-id  
+- Docs suite professionalize  
 
-## 2. Residual — Ops
+## 2. Product residual batch — DONE
 
-| Item | Status | Action owner |
-|------|--------|--------------|
-| Bật E2E trên Actions | PARTIAL | Set repo variable `E2E_ENABLED=true` khi billing cho phép |
-| Image publish / GHCR visibility | UNKNOWN/ops | Kiểm tra Packages + secrets `DOCKERHUB_*` |
-| Lint soft-fail trong CI | PARTIAL | Flip strict sau khi baseline sạch |
+| Item | Status | Notes |
+|------|--------|-------|
+| Cookie httpOnly refresh | COMPLETE | `identity` Set-Cookie; web sessionStorage access |
+| Mock PaymentAttempt ledger | COMPLETE | `payment_attempts` table |
+| Seat inventory flight/transport | COMPLETE | decrement on pay; restore on cancel confirmed |
+| Transport bookable | COMPLETE | `BookingItemType.transport` + BookButton |
+| Chat history DB | COMPLETE | `chat_conversations` / `chat_messages` + web persist |
+| DeepSeek tool-calling (read-only) | COMPLETE | search/get tools; no book/admin |
+| MinIO media platform | SKIP / DISCONNECTED | App still unused |
 
-## 3. Residual — Product (cần quyết định)
+## 3. Still open — Ops / product later
 
-| Item | Status | Ghi chú |
-|------|--------|---------|
-| Real PSP + inventory | NOT IMPLEMENTED | Không chọn provider trong docs |
-| Cookie/httpOnly session | PARTIAL | localStorage residual XSS risk |
-| DeepSeek tool-calling / catalog tools | NOT IMPLEMENTED | Cần authz trước tool |
-| Chat history persistence | NOT IMPLEMENTED | Không có messages table |
-| Transport bookable | NOT IMPLEMENTED | Browse-only |
-| MinIO media platform | DISCONNECTED | App không dùng |
+| Item | Status | Owner |
+|------|--------|-------|
+| `E2E_ENABLED=true` on Actions | PARTIAL | Repo settings + billing |
+| Lint CI hard-fail | PARTIAL | Flip after clean baseline |
+| Image Hub/GHCR rebuild after latest | Ops | Publish workflow |
+| Real PSP (SePay/Stripe/…) | NOT IMPLEMENTED | Product decision |
+| Cookie Domain for multi-subdomain prod | PARTIAL | Configure when hostnames known |
+| RAG / vector / streaming SSE | NOT IMPLEMENTED | Explicit non-goal short term |
+| Hotel room calendar inventory | NOT IMPLEMENTED | YAGNI |
 
-## 4. Documentation (this pass)
+## 4. Explicit non-goals (giữ)
 
-- Expand README + docs suite (professionalize)  
-- Env inventory, runbooks, troubleshooting  
+Traveloka partner APIs · native apps · GDS · multi-vendor PMS · premature K8s · full MinIO CMS.
 
-## 5. Explicit non-goals (giữ)
-
-Real Traveloka APIs · native apps · GDS · multi-tenant vendor PMS · premature K8s.
-
-## 6. Related
+## 5. Related
 
 - [PDR](./project-overview-pdr.md)
-- Master plan local: `plans/260710-1615-vietnam-travel-master/` (thường gitignore)
+- [Security overview](./security/overview.md)
+- Scout: [reports/vietnam-travel-codebase-scout.md](./reports/vietnam-travel-codebase-scout.md)

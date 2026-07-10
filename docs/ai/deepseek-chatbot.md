@@ -38,7 +38,7 @@ Implementation: `scripts/lib/deepseek-travel-chat.mjs`.
 | Per-user Redis rate limit | COMPLETE (fail-open if redis down) |
 | Outbound HMAC sign | COMPLETE |
 | Inbound HMAC raw body | COMPLETE (`ai/src/main.ts` rawBody) |
-| Tool calling authz | N/A — tools NOT IMPLEMENTED |
+| Tool calling (read-only catalog) | COMPLETE path | `scripts/lib/deepseek-tools.mjs`; max 3 rounds; public GET only |
 | Prompt injection hard filter | PARTIAL (system prompt only) |
 | PII redaction | NOT IMPLEMENTED |
 | Cost telemetry | NOT IMPLEMENTED |

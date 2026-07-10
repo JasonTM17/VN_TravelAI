@@ -13,7 +13,7 @@
 | Account lockout | COMPLETE | User fields + login |
 | Admin role checks | PARTIAL | JWT role + admin routes |
 | IDOR on bookings | mitigated by `userId` filter | `bookings.ts` |
-| Session storage | PARTIAL | localStorage XSS residual |
+| Session storage | PARTIAL → improved | Access in sessionStorage; **refresh httpOnly cookie** on identity origin |
 
 ## 2. Network & headers
 
@@ -37,7 +37,7 @@
 |---------|--------|
 | HMAC outbound + inbound raw body | COMPLETE |
 | Chat requires JWT | COMPLETE |
-| Tool abuse | N/A (no tools) |
+| Tool abuse | Mitigated | Read-only catalog tools; args validated; no book/admin tools |
 | Prompt injection | PARTIAL |
 
 ## 5. Containers & secrets
