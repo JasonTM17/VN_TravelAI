@@ -9,6 +9,22 @@ export function createMeili(config: AppConfig) {
   });
 }
 
+async function ensureCleanIndex(client: MeiliSearch, uid: string) {
+  try {
+    const del = await client.deleteIndex(uid);
+    await client.waitForTask(del.taskUid, { timeOutMs: 30_000 });
+  } catch {
+    // index may not exist yet
+  }
+  const created = await client.createIndex(uid, { primaryKey: "id" });
+  await client.waitForTask(created.taskUid, { timeOutMs: 30_000 });
+  return client.index(uid);
+}
+
+/**
+ * Full rebuild of catalog search indexes from Postgres.
+ * Deletes and recreates indexes so reseeded UUIDs never leave stale Meili docs.
+ */
 export async function reindexAll(client: MeiliSearch) {
   const destinations = await prisma.destination.findMany();
   const hotels = await prisma.hotel.findMany({
@@ -18,18 +34,35 @@ export async function reindexAll(client: MeiliSearch) {
     include: { destination: true },
   });
 
-  const destIndex = client.index("destinations");
-  const hotelIndex = client.index("hotels");
-  const tourIndex = client.index("tours");
+  const destIndex = await ensureCleanIndex(client, "destinations");
+  const hotelIndex = await ensureCleanIndex(client, "hotels");
+  const tourIndex = await ensureCleanIndex(client, "tours");
 
   await destIndex.updateFilterableAttributes(["countryCode", "slug"]);
   await hotelIndex.updateFilterableAttributes(["destinationSlug", "stars", "priceFromVnd"]);
   await tourIndex.updateFilterableAttributes(["destinationSlug", "durationDays"]);
-  await destIndex.updateSearchableAttributes(["nameVi", "nameEn", "region", "descriptionVi", "descriptionEn"]);
-  await hotelIndex.updateSearchableAttributes(["name", "destinationSlug", "descriptionVi", "descriptionEn"]);
-  await tourIndex.updateSearchableAttributes(["titleVi", "titleEn", "destinationSlug", "descriptionVi", "descriptionEn"]);
+  await destIndex.updateSearchableAttributes([
+    "nameVi",
+    "nameEn",
+    "region",
+    "descriptionVi",
+    "descriptionEn",
+  ]);
+  await hotelIndex.updateSearchableAttributes([
+    "name",
+    "destinationSlug",
+    "descriptionVi",
+    "descriptionEn",
+  ]);
+  await tourIndex.updateSearchableAttributes([
+    "titleVi",
+    "titleEn",
+    "destinationSlug",
+    "descriptionVi",
+    "descriptionEn",
+  ]);
 
-  await destIndex.addDocuments(
+  const dTask = await destIndex.addDocuments(
     destinations.map((d) => ({
       id: d.id,
       slug: d.slug,
@@ -42,8 +75,7 @@ export async function reindexAll(client: MeiliSearch) {
       heroImageUrl: d.heroImageUrl,
     })),
   );
-
-  await hotelIndex.addDocuments(
+  const hTask = await hotelIndex.addDocuments(
     hotels.map((h) => ({
       id: h.id,
       slug: h.slug,
@@ -57,8 +89,7 @@ export async function reindexAll(client: MeiliSearch) {
       images: h.images,
     })),
   );
-
-  await tourIndex.addDocuments(
+  const tTask = await tourIndex.addDocuments(
     tours.map((t) => ({
       id: t.id,
       slug: t.slug,
@@ -72,4 +103,16 @@ export async function reindexAll(client: MeiliSearch) {
       images: t.images,
     })),
   );
+
+  await Promise.all([
+    client.waitForTask(dTask.taskUid, { timeOutMs: 60_000 }),
+    client.waitForTask(hTask.taskUid, { timeOutMs: 60_000 }),
+    client.waitForTask(tTask.taskUid, { timeOutMs: 60_000 }),
+  ]);
+
+  return {
+    destinations: destinations.length,
+    hotels: hotels.length,
+    tours: tours.length,
+  };
 }
