@@ -126,16 +126,10 @@ temp/
 # Local MCP cache
 mcps/
 
-# Keep .stitch/ design system & exports tracked (do not ignore the folder).
-# Only ignore oversized local regenerations if added later under tmp.
-.stitch/**/tmp/
-.stitch/**/*.tmp
+# Stitch design exports — local only (do not track)
+.stitch/
 
 # Docs media: keep final PNG/GIF; ignore intermediate ffmpeg frames
 docs/media/frames/
 docs/media/palette.png
-
-
-# Empty Stitch binary stubs
-.stitch/designs/*.html.bin
 
