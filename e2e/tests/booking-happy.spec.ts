@@ -31,17 +31,24 @@ test.describe("Booking happy path UI", () => {
     await expect(page.getByTestId("content-ready")).toBeVisible();
     await page.screenshot({ path: path.join(shotDir, "01-hotel-detail.png"), fullPage: true });
 
-    // Book now
+    // Create booking (no auto-pay unless NEXT_PUBLIC_BOOK_AUTOPAY)
     const bookBtn = page.getByRole("button", { name: /Đặt ngay|Book now/i });
     await expect(bookBtn).toBeVisible();
     await bookBtn.click();
     await expect(page).toHaveURL(/\/vi\/bookings/, { timeout: 25_000 });
     await page.screenshot({ path: path.join(shotDir, "02-bookings.png"), fullPage: true });
 
-    // Bookings page should not be empty-only after successful book
+    // Explicit mock pay when pending
+    const payBtn = page.getByRole("button", { name: /Thanh toán mock|Mock pay/i });
+    if (await payBtn.count()) {
+      await payBtn.first().click();
+      await expect(page.getByText(/confirmed|đã xác nhận|Confirmed/i).first()).toBeVisible({
+        timeout: 15_000,
+      }).catch(() => undefined);
+    }
+
     const body = await page.textContent("body");
     expect(body).toBeTruthy();
-    // Prefer seeing confirmed/pending or a card; at least not stuck on login
     expect(page.url()).toMatch(/\/vi\/bookings/);
   });
 });

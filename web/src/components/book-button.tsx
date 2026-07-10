@@ -20,6 +20,8 @@ export function BookButton({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Demo-only: one-click create+pay when NEXT_PUBLIC_BOOK_AUTOPAY=true */
+  const autoPay = process.env.NEXT_PUBLIC_BOOK_AUTOPAY === "true";
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -53,7 +55,9 @@ export function BookButton({
               },
               crypto.randomUUID(),
             );
-            await api.payBooking(token, booking.data.id, "success");
+            if (autoPay) {
+              await api.payBooking(token, booking.data.id, "success");
+            }
             router.push(`/${locale}/bookings`);
           } catch (e) {
             setError(e instanceof Error ? e.message : "Failed");

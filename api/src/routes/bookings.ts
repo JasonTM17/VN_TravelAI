@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { sendProblem } from "../lib/problem.js";
 import type { createAuthGuard } from "../lib/auth.js";
-import { applyPayment } from "../lib/booking-state.js";
+import { applyPayment, canTransition, type BookingStatus } from "../lib/booking-state.js";
 
 const createSchema = z.object({
   itemType: z.enum(["hotel", "tour", "flight"]),
@@ -43,7 +43,7 @@ export async function bookingRoutes(
     }
     const existing = await prisma.booking.findUnique({ where: { idempotencyKey } });
     if (existing) {
-      return reply.status(201).send({ success: true, data: existing });
+      return reply.status(200).send({ success: true, data: existing });
     }
 
     const { itemType, itemId, guests, startDate, endDate, contactName, contactEmail, contactPhone } =
@@ -83,25 +83,34 @@ export async function bookingRoutes(
       };
     }
 
-    const booking = await prisma.booking.create({
-      data: {
-        userId: user.id,
-        status: "pending_payment",
-        itemType,
-        itemId,
-        itemSnapshot,
-        guests,
-        startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-        totalVnd,
-        contactName: contactName ?? user.name,
-        contactEmail: contactEmail ?? user.email,
-        contactPhone,
-        idempotencyKey,
-      },
-    });
-
-    return reply.status(201).send({ success: true, data: booking });
+    try {
+      const booking = await prisma.booking.create({
+        data: {
+          userId: user.id,
+          status: "pending_payment",
+          itemType,
+          itemId,
+          itemSnapshot,
+          guests,
+          startDate: new Date(startDate),
+          endDate: endDate ? new Date(endDate) : null,
+          totalVnd,
+          contactName: contactName ?? user.name,
+          contactEmail: contactEmail ?? user.email,
+          contactPhone,
+          idempotencyKey,
+        },
+      });
+      return reply.status(201).send({ success: true, data: booking });
+    } catch (err) {
+      // Concurrent create with same Idempotency-Key
+      const code = (err as { code?: string })?.code;
+      if (code === "P2002") {
+        const again = await prisma.booking.findUnique({ where: { idempotencyKey } });
+        if (again) return reply.status(200).send({ success: true, data: again });
+      }
+      throw err;
+    }
   });
 
   app.post("/v1/bookings/:id/pay", async (req, reply) => {
@@ -140,6 +149,10 @@ export async function bookingRoutes(
     if (!booking) return sendProblem(reply, 404, "Not found", "Booking not found");
     if (booking.status === "cancelled") {
       return { success: true, data: booking };
+    }
+    const from = booking.status as BookingStatus;
+    if (!canTransition(from, "cancelled")) {
+      return sendProblem(reply, 409, "Conflict", `Cannot cancel booking in status ${booking.status}`);
     }
     const updated = await prisma.booking.update({
       where: { id },
