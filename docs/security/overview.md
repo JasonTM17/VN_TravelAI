@@ -13,15 +13,16 @@
 | Account lockout | COMPLETE | User fields + login |
 | Admin role checks | PARTIAL | JWT role + admin routes |
 | IDOR on bookings | mitigated by `userId` filter | `bookings.ts` |
-| Session storage | PARTIAL → improved | Access in sessionStorage; **refresh httpOnly cookie** on identity origin |
+| Session storage | Improved | Access **memory-only** default; refresh **httpOnly cookie**; opt-in `NEXT_PUBLIC_PERSIST_ACCESS` |
+| JSON refresh body | Improved | Omitted unless `ALLOW_BODY_REFRESH=true` |
 
 ## 2. Network & headers
 
 | Control | Status |
 |---------|--------|
 | CORS allowlist (api/identity/ai) | COMPLETE |
-| CSP + nosniff + frame deny | PARTIAL (`unsafe-eval` still for Next) |
-| Metrics public | residual |
+| CSP + nosniff + frame deny | PARTIAL (`unsafe-eval` still for Next — accepted residual) |
+| Metrics | `METRICS_TOKEN` when set → Bearer / X-Metrics-Token |
 
 ## 3. Injection & search
 
@@ -38,6 +39,7 @@
 | HMAC outbound + inbound raw body | COMPLETE |
 | Chat requires JWT | COMPLETE |
 | Tool abuse | Mitigated | Read-only catalog tools; args validated; no book/admin tools |
+| Prompt framing | Improved | USER_START/END + untrusted note (`prompt-guard.mjs`) |
 | Prompt injection | PARTIAL |
 
 ## 5. Containers & secrets

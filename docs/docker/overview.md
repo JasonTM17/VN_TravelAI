@@ -62,7 +62,7 @@ docker pull ghcr.io/jasontm17/travelai-ai:latest
 | Secrets in image layers | Avoid — use env at runtime |
 | Privileged / docker.sock | Not used in compose (CONFIRMED intent) |
 | Data plane host ports | Published in base (local OK); prod overlay restricts |
-| MinIO in default stack | Residual attack surface; app unused |
+| MinIO | Profile `storage` only (not default stack); app unused |
 
 ## 7. Related
 
