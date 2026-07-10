@@ -11,12 +11,19 @@ import bcrypt from "bcryptjs";
 
 async function ensureDemoUser(email: string, password: string) {
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return;
+  if (existing) {
+    // Promote demo account to admin for local ops / reindex RBAC drills
+    if (existing.role !== "admin") {
+      await prisma.user.update({ where: { id: existing.id }, data: { role: "admin" } });
+    }
+    return;
+  }
   await prisma.user.create({
     data: {
       email,
       fullName: "TravelAI Demo",
       passwordHash: await bcrypt.hash(password, 12),
+      role: "admin",
     },
   });
 }
@@ -30,7 +37,15 @@ async function main() {
   });
 
   await app.register(cors, { origin: true, credentials: true });
-  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  });
 
   const redis = createRedis(config.REDIS_URL);
   try {

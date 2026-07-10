@@ -24,11 +24,12 @@ const refreshSchema = z.object({
   refreshToken: z.string().min(10),
 });
 
-function publicUser(u: { id: string; email: string; fullName: string; createdAt: Date }) {
+function publicUser(u: { id: string; email: string; fullName: string; role?: string; createdAt: Date }) {
   return {
     id: u.id,
     email: u.email,
     fullName: u.fullName,
+    role: u.role ?? "user",
     createdAt: u.createdAt.toISOString(),
   };
 }

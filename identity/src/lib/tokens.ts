@@ -12,7 +12,7 @@ export function mintRefreshToken(): string {
 }
 
 export async function mintAccessToken(
-  user: { id: string; email: string; fullName: string },
+  user: { id: string; email: string; fullName: string; role?: string },
   primary: KeySlot,
   config: AppConfig,
 ): Promise<{ accessToken: string; expiresIn: number }> {
@@ -20,6 +20,7 @@ export async function mintAccessToken(
   const accessToken = await new SignJWT({
     email: user.email,
     name: user.fullName,
+    role: user.role ?? "user",
   })
     .setProtectedHeader({ alg: "EdDSA", kid: primary.kid, typ: "JWT" })
     .setSubject(user.id)

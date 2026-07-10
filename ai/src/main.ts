@@ -32,7 +32,15 @@ async function main() {
   const config = loadConfig();
   const app = Fastify({ logger: { level: config.LOG_LEVEL } });
   await app.register(cors, { origin: true, credentials: true });
-  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  });
 
   const redis = new Redis(config.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1 });
   try {

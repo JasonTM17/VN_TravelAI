@@ -12,6 +12,8 @@ model User {
   email            String         @unique
   passwordHash     String         @map("password_hash")
   fullName         String         @map("full_name")
+  /// user | admin
+  role             String         @default("user")
   failedLoginCount Int            @default(0) @map("failed_login_count")
   lockedUntil      DateTime?      @map("locked_until")
   createdAt        DateTime       @default(now()) @map("created_at")
