@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { getDict, type Locale } from "@/lib/i18n";
-import { clearSession, getAccessToken } from "@/lib/auth-storage";
+import { api } from "@/lib/api";
+import { clearSession, getAccessToken, getRefreshToken } from "@/lib/auth-storage";
 import { isAdminRole, readJwtRole } from "@/lib/jwt-role";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,8 @@ export function Navbar({ locale }: { locale: Locale }) {
     { href: `/${locale}/flights`, label: t.nav.flights },
     { href: `/${locale}/tours`, label: t.nav.tours },
     { href: `/${locale}/transport`, label: t.nav.transport },
+    { href: `/${locale}/explore`, label: t.nav.explore },
+    { href: `/${locale}/ai`, label: t.nav.ai },
   ];
 
   const other = locale === "vi" ? "en" : "vi";
@@ -84,7 +87,15 @@ export function Navbar({ locale }: { locale: Locale }) {
               <button
                 type="button"
                 className="ml-1 inline-flex min-h-11 items-center rounded-lg bg-white px-3 text-sm font-semibold text-[#0064d2]"
-                onClick={() => {
+                onClick={async () => {
+                  const rt = getRefreshToken();
+                  if (rt) {
+                    try {
+                      await api.logout(rt);
+                    } catch {
+                      /* ignore logout network errors */
+                    }
+                  }
                   clearSession();
                   setAuthed(false);
                   setAdmin(false);

@@ -94,6 +94,7 @@ services:
       - "53000:3000"
     environment:
       # Host browser URLs (NEXT_PUBLIC baked at build)
+      NEXT_PUBLIC_DEMO_PREFILL: "true"
       NEXT_PUBLIC_API_URL: http://localhost:53001
       NEXT_PUBLIC_IDENTITY_URL: http://localhost:53002
       NEXT_PUBLIC_AI_URL: http://localhost:53003

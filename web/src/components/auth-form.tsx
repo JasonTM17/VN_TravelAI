@@ -10,9 +10,10 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
   const t = getDict(locale);
   const router = useRouter();
   const search = useSearchParams();
-  // Login may prefill demo; register starts empty (real app UX)
-  const [email, setEmail] = useState(mode === "login" ? "demo@travelai.local" : "");
-  const [password, setPassword] = useState(mode === "login" ? "DemoTravelAI1!" : "");
+  // Demo prefill only when NEXT_PUBLIC_DEMO_PREFILL=true (local compose)
+  const demoPrefill = process.env.NEXT_PUBLIC_DEMO_PREFILL === "true";
+  const [email, setEmail] = useState(mode === "login" && demoPrefill ? "demo@travelai.local" : "");
+  const [password, setPassword] = useState(mode === "login" && demoPrefill ? "DemoTravelAI1!" : "");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
