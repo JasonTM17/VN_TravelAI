@@ -291,22 +291,34 @@ async function main() {
     const n = dest.countryCode === "VN" ? 3 : 2;
     for (let i = 0; i < n; i++) {
       const stars = 3 + (i % 3);
-      const price = 450_000 + i * 350_000 + (dest.countryCode === "VN" ? 0 : 800_000);
+      // Spread prices so home hotel grid never looks copy-pasted
+      const slugMix =
+        [...dest.slug].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 17;
+      const price =
+        (dest.countryCode === "VN" ? 480_000 : 1_350_000) +
+        i * 520_000 +
+        slugMix * 95_000 +
+        stars * 110_000 +
+        (hotelCount % 9) * 35_000;
       const hotel = await prisma.hotel.create({
         data: {
           slug: `${dest.slug}-hotel-${i + 1}`,
-          name: `${hotelNames[i % hotelNames.length]} ${dest.nameEn}`,
+          name: `${hotelNames[(i + dest.slug.charCodeAt(0)) % hotelNames.length]} ${dest.nameEn}`,
           stars,
           priceFromVnd: price,
           destinationId: dest.id,
-          descriptionVi: `Khách sạn ${stars}★ tại ${dest.nameVi}, vị trí thuận tiện cho khám phá.`,
-          descriptionEn: `${stars}-star stay in ${dest.nameEn}, great for explorers.`,
+          descriptionVi: `Khách sạn ${stars}★ tại ${dest.nameVi} — gần trung tâm, phù hợp cặp đôi & gia đình.`,
+          descriptionEn: `${stars}-star stay in ${dest.nameEn} — central location for couples & families.`,
           images: [
+            // Destination-specific hotel asset first (not the dest hero landscape)
+            i === 0
+              ? `/images/hotels/${dest.slug}.jpg`
+              : `/images/hotels/${dest.slug}-2.jpg`,
             dest.heroImageUrl,
             "/images/categories/hotels.jpg",
           ],
           amenities: amenitiesPool.slice(0, 4 + (i % 3)),
-          rating: 4.2 + (i % 7) * 0.1,
+          rating: Math.round((4.1 + (i % 8) * 0.1 + (dest.slug.length % 3) * 0.05) * 10) / 10,
         },
       });
       hotelCount++;
@@ -329,24 +341,129 @@ async function main() {
     }
   }
 
+  /** Destination-specific tour packs — avoids copy-paste titles/prices on home */
+  const tourPacks: Record<
+    string,
+    Array<{ days: number; titleVi: string; titleEn: string; price: number }>
+  > = {
+    "da-nang": [
+      { days: 1, titleVi: "Tour Bà Nà Hills 1 ngày — Cầu Vàng", titleEn: "Ba Na Hills day tour — Golden Bridge", price: 1_250_000 },
+      { days: 3, titleVi: "Đà Nẵng – Hội An – Sơn Trà 3N2Đ", titleEn: "Da Nang – Hoi An – Son Tra 3D2N", price: 3_890_000 },
+    ],
+    "hoi-an": [
+      { days: 1, titleVi: "Phố cổ Hội An & lồng đèn về đêm", titleEn: "Hoi An Old Town & lantern night walk", price: 690_000 },
+      { days: 3, titleVi: "Hội An – Mỹ Sơn – biển An Bàng 3 ngày", titleEn: "Hoi An – My Son – An Bang 3 days", price: 3_450_000 },
+    ],
+    "ha-long": [
+      { days: 1, titleVi: "Du thuyền Vịnh Hạ Long 1 ngày", titleEn: "Ha Long Bay day cruise", price: 1_150_000 },
+      { days: 2, titleVi: "Du thuyền ngủ đêm 5★ Hạ Long", titleEn: "Overnight 5★ Ha Long cruise", price: 4_990_000 },
+    ],
+    hue: [
+      { days: 1, titleVi: "Đại Nội – lăng tẩm – chùa Thiên Mụ", titleEn: "Citadel – royal tombs – Thien Mu", price: 850_000 },
+      { days: 3, titleVi: "Huế cung đình 3 ngày ẩm thực", titleEn: "Imperial Hue 3-day food journey", price: 2_990_000 },
+    ],
+    sapa: [
+      { days: 2, titleVi: "Trekking Sapa – Bản Cát Cát 2N1Đ", titleEn: "Sapa trekking Cat Cat 2D1N", price: 2_150_000 },
+      { days: 3, titleVi: "Fansipan & ruộng bậc thang 3 ngày", titleEn: "Fansipan & terraces 3 days", price: 3_750_000 },
+    ],
+    "phu-quoc": [
+      { days: 1, titleVi: "Tour 4 đảo Phú Quốc & cáp treo", titleEn: "Phu Quoc 4 islands & cable car", price: 1_350_000 },
+      { days: 3, titleVi: "Phú Quốc nghỉ dưỡng 3N2Đ", titleEn: "Phu Quoc resort escape 3D2N", price: 5_490_000 },
+    ],
+    "da-lat": [
+      { days: 1, titleVi: "Đà Lạt city tour – đồi chè – hồ Tuyền Lâm", titleEn: "Da Lat city – tea hills – Tuyen Lam", price: 790_000 },
+      { days: 3, titleVi: "Đà Lạt ngàn hoa 3 ngày", titleEn: "Da Lat flower city 3 days", price: 2_890_000 },
+    ],
+    "nha-trang": [
+      { days: 1, titleVi: "Lặn biển Hòn Mun 1 ngày", titleEn: "Hon Mun snorkeling day trip", price: 980_000 },
+      { days: 3, titleVi: "Nha Trang – VinWonders 3 ngày", titleEn: "Nha Trang VinWonders 3 days", price: 4_200_000 },
+    ],
+    "ninh-binh": [
+      { days: 1, titleVi: "Tam Cốc – Bích Động thuyền nan", titleEn: "Tam Coc – Bich Dong boat day", price: 720_000 },
+      { days: 2, titleVi: "Tràng An – Hang Múa 2 ngày", titleEn: "Trang An – Hang Mua 2 days", price: 1_890_000 },
+    ],
+    "can-tho": [
+      { days: 1, titleVi: "Chợ nổi Cái Răng – Mỹ Tho", titleEn: "Cai Rang floating market day", price: 690_000 },
+      { days: 2, titleVi: "Miền Tây sông nước 2N1Đ", titleEn: "Mekong Delta 2D1N", price: 1_650_000 },
+    ],
+    "ha-noi": [
+      { days: 1, titleVi: "Hà Nội phố cổ & ẩm thực 1 ngày", titleEn: "Hanoi Old Quarter food day", price: 650_000 },
+      { days: 3, titleVi: "Hà Nội – Ninh Bình – Hạ Long 3 ngày", titleEn: "Hanoi – Ninh Binh – Ha Long 3D", price: 4_590_000 },
+    ],
+    "tp-hcm": [
+      { days: 1, titleVi: "Sài Gòn city – Củ Chi 1 ngày", titleEn: "Saigon city & Cu Chi day", price: 780_000 },
+      { days: 3, titleVi: "Sài Gòn – Mekong 3 ngày", titleEn: "Saigon – Mekong 3 days", price: 3_290_000 },
+    ],
+    tokyo: [
+      { days: 1, titleVi: "Tokyo city hop – Asakusa – Shibuya", titleEn: "Tokyo highlights Asakusa–Shibuya", price: 2_450_000 },
+      { days: 3, titleVi: "Tokyo – Mt Fuji 3 ngày", titleEn: "Tokyo – Mt Fuji 3 days", price: 8_900_000 },
+    ],
+    seoul: [
+      { days: 1, titleVi: "Seoul palace & Hongdae 1 ngày", titleEn: "Seoul palace & Hongdae day", price: 1_990_000 },
+      { days: 3, titleVi: "Seoul – Nami 3 ngày", titleEn: "Seoul – Nami Island 3 days", price: 7_450_000 },
+    ],
+    bangkok: [
+      { days: 1, titleVi: "Bangkok temples & Chao Phraya", titleEn: "Bangkok temples & river cruise", price: 1_150_000 },
+      { days: 3, titleVi: "Bangkok – Ayutthaya 3 ngày", titleEn: "Bangkok – Ayutthaya 3 days", price: 4_200_000 },
+    ],
+    bali: [
+      { days: 1, titleVi: "Bali Ubud rice terraces day", titleEn: "Ubud rice terraces day trip", price: 1_450_000 },
+      { days: 3, titleVi: "Bali beach & temple 3 ngày", titleEn: "Bali beach & temple 3 days", price: 6_800_000 },
+    ],
+    singapore: [
+      { days: 1, titleVi: "Marina Bay & Gardens by the Bay", titleEn: "Marina Bay & Gardens day", price: 2_100_000 },
+      { days: 3, titleVi: "Singapore city break 3 ngày", titleEn: "Singapore city break 3 days", price: 9_500_000 },
+    ],
+    paris: [
+      { days: 1, titleVi: "Paris classic – Louvre – Seine", titleEn: "Paris classic Louvre & Seine", price: 3_200_000 },
+      { days: 3, titleVi: "Paris romance 3 ngày", titleEn: "Paris romance 3 days", price: 12_500_000 },
+    ],
+    kyoto: [
+      { days: 1, titleVi: "Kyoto Fushimi Inari & Gion", titleEn: "Fushimi Inari & Gion day", price: 2_350_000 },
+      { days: 3, titleVi: "Kyoto temple trail 3 ngày", titleEn: "Kyoto temple trail 3 days", price: 9_200_000 },
+    ],
+    phuket: [
+      { days: 1, titleVi: "Phuket islands speedboat day", titleEn: "Phuket islands speedboat day", price: 1_680_000 },
+      { days: 3, titleVi: "Phuket beach escape 3 ngày", titleEn: "Phuket beach escape 3 days", price: 5_950_000 },
+    ],
+  };
+
   let tourCount = 0;
   for (const dest of destRows) {
-    const variants = [
-      { days: 1, titleVi: `Tour trong ngày ${dest.nameVi}`, titleEn: `${dest.nameEn} day trip` },
-      { days: 3, titleVi: `Khám phá ${dest.nameVi} 3 ngày`, titleEn: `3-day ${dest.nameEn} explorer` },
-    ];
-    for (const [i, v] of variants.entries()) {
+    const packs =
+      tourPacks[dest.slug] ??
+      ([
+        {
+          days: 1,
+          titleVi: `Tour khám phá ${dest.nameVi} 1 ngày`,
+          titleEn: `${dest.nameEn} discovery day trip`,
+          price: dest.countryCode === "VN" ? 750_000 + tourCount * 17_000 : 1_800_000 + tourCount * 40_000,
+        },
+        {
+          days: 3,
+          titleVi: `Hành trình ${dest.nameVi} 3 ngày 2 đêm`,
+          titleEn: `${dest.nameEn} 3D2N journey`,
+          price: dest.countryCode === "VN" ? 2_800_000 + tourCount * 50_000 : 6_500_000 + tourCount * 80_000,
+        },
+      ] as const);
+
+    for (const v of packs) {
       await prisma.tour.create({
         data: {
           slug: `${dest.slug}-tour-${v.days}d`,
           titleVi: v.titleVi,
           titleEn: v.titleEn,
           durationDays: v.days,
-          priceFromVnd: 790_000 * v.days + i * 100_000,
+          priceFromVnd: v.price,
           destinationId: dest.id,
-          descriptionVi: `Hành trình ${v.days} ngày tại ${dest.nameVi} với hướng dẫn viên địa phương.`,
-          descriptionEn: `${v.days}-day guided journey through ${dest.nameEn}.`,
-          images: [dest.heroImageUrl, "/images/categories/tours.jpg"],
+          descriptionVi: `${v.titleVi}. Hướng dẫn viên địa phương, đón trả khách sạn khu vực trung tâm ${dest.nameVi}.`,
+          descriptionEn: `${v.titleEn}. Local guide, hotel pickup around central ${dest.nameEn}.`,
+          images: [
+            // Tour activity photo first, destination landscape second
+            `/images/tours/${dest.slug}.jpg`,
+            dest.heroImageUrl,
+            "/images/categories/tours.jpg",
+          ],
         },
       });
       tourCount++;
