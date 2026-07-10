@@ -40,29 +40,91 @@ model Hotel {
   images          String[]
   amenities       String[]
   rating          Float    @default(4.5)
-  /// Soft room inventory for mock booking (not a full PMS calendar).
+  /// Aggregate soft inventory (sum of room types / fallback).
   roomsLeft       Int      @default(20) @map("rooms_left")
   createdAt       DateTime @default(now()) @map("created_at")
   destination     Destination @relation(fields: [destinationId], references: [id])
   reviews         Review[]
   nightInventory  HotelNightInventory[]
+  roomTypes       HotelRoomType[]
 
   @@index([destinationId])
   @@index([priceFromVnd])
   @@map("hotels")
 }
 
-/// Per-night soft room inventory (full calendar, not PMS).
-model HotelNightInventory {
-  id        String   @id @default(uuid()) @db.Uuid
-  hotelId   String   @map("hotel_id") @db.Uuid
-  night     DateTime @db.Date
-  roomsLeft Int      @map("rooms_left")
-  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+/// PMS room type (Standard / Deluxe / Suite).
+model HotelRoomType {
+  id           String   @id @default(uuid()) @db.Uuid
+  hotelId      String   @map("hotel_id") @db.Uuid
+  code         String
+  nameEn       String   @map("name_en")
+  nameVi       String   @map("name_vi")
+  maxOccupancy Int      @default(2) @map("max_occupancy")
+  roomsTotal   Int      @map("rooms_total")
+  basePriceVnd Int      @map("base_price_vnd")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  hotel        Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  ratePlans    RatePlan[]
+  nightInventory HotelNightInventory[]
 
-  @@unique([hotelId, night])
+  @@unique([hotelId, code])
+  @@index([hotelId])
+  @@map("hotel_room_types")
+}
+
+/// Rate plan under a room type (BAR, breakfast, non-refundable).
+model RatePlan {
+  id                String        @id @default(uuid()) @db.Uuid
+  roomTypeId        String        @map("room_type_id") @db.Uuid
+  code              String
+  nameEn            String        @map("name_en")
+  nameVi            String        @map("name_vi")
+  priceVnd          Int           @map("price_vnd")
+  breakfastIncluded Boolean       @default(false) @map("breakfast_included")
+  refundable        Boolean       @default(true)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  roomType          HotelRoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, code])
+  @@index([roomTypeId])
+  @@map("rate_plans")
+}
+
+/// Per-night soft inventory, scoped by room type when set.
+model HotelNightInventory {
+  id         String         @id @default(uuid()) @db.Uuid
+  hotelId    String         @map("hotel_id") @db.Uuid
+  roomTypeId String?        @map("room_type_id") @db.Uuid
+  night      DateTime       @db.Date
+  roomsLeft  Int            @map("rooms_left")
+  hotel      Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType   HotelRoomType? @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, night, roomTypeId])
   @@index([night])
+  @@index([roomTypeId])
   @@map("hotel_night_inventory")
+}
+
+/// Catalog vector docs (Pinecone mirror + local cosine search).
+model VectorDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  sourceType String   @map("source_type")
+  sourceId   String   @map("source_id")
+  title      String
+  content    String   @db.Text
+  embedding  Json
+  dim        Int
+  metadata   Json?
+  backend    String   @default("postgres")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([sourceType, sourceId])
+  @@index([sourceType])
+  @@map("vector_documents")
 }
 
 model Notification {

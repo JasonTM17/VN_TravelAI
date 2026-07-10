@@ -17,6 +17,7 @@ import { reviewRoutes } from "./routes/reviews.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { hotelAvailabilityRoutes } from "./routes/hotel-availability.js";
 import { metricsAuthorized } from "./lib/metrics-guard.js";
+import { formatVectorHitsAsContext, queryVectors, reindexCatalogVectors } from "./lib/vector-store.js";
 
 async function main() {
   const config = loadConfig();
@@ -150,6 +151,59 @@ async function main() {
       app.log.error(err);
       return reply.status(500).send({ success: false, error: "reindex failed" });
     }
+  });
+
+  /** Semantic vector reindex (Pinecone when configured, else Postgres embeddings). */
+  app.post("/v1/admin/reindex-vectors", async (req, reply) => {
+    const user = await requireAdmin(requireAuth, req, reply);
+    if (!user) return;
+    const adminToken = process.env.ADMIN_REINDEX_TOKEN;
+    if (adminToken && adminToken.length >= 16) {
+      const provided = req.headers["x-admin-token"];
+      if (typeof provided !== "string" || provided !== adminToken) {
+        return reply.status(403).send({
+          type: "about:blank",
+          title: "Forbidden",
+          status: 403,
+          detail: "Admin reindex requires matching X-Admin-Token",
+        });
+      }
+    }
+    try {
+      const counts = await reindexCatalogVectors();
+      await writeAdminAudit({
+        userId: user.id,
+        action: "vectors.reindex",
+        detail: JSON.stringify(counts),
+        ip: req.ip,
+      });
+      return { success: true, data: { reindexed: true, by: user.id, counts } };
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ success: false, error: "vector reindex failed" });
+    }
+  });
+
+  /** Public semantic search over catalog vectors (local hash or API embeddings). */
+  app.get("/v1/search/vectors", async (req, reply) => {
+    const q = (req.query as { q?: string; topK?: string }).q?.trim() ?? "";
+    if (!q || q.length < 2) {
+      return reply.status(400).send({
+        type: "about:blank",
+        title: "Validation error",
+        status: 400,
+        detail: "q required (min 2 chars)",
+      });
+    }
+    const topK = Math.min(Math.max(Number((req.query as { topK?: string }).topK ?? 5) || 5, 1), 20);
+    const hits = await queryVectors(q, topK);
+    return {
+      success: true,
+      data: {
+        hits,
+        context: formatVectorHitsAsContext(hits),
+      },
+    };
   });
 
   app.get("/v1/admin/audit", async (req, reply) => {
