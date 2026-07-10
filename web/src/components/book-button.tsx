@@ -13,7 +13,7 @@ export function BookButton({
   label,
 }: {
   locale: Locale;
-  itemType: "hotel" | "tour" | "flight";
+  itemType: "hotel" | "tour" | "flight" | "transport";
   itemId: string;
   label: string;
 }) {

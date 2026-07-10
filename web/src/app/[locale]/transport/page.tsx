@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BookButton } from "@/components/book-button";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
@@ -78,7 +79,15 @@ export default async function TransportPage({
                   {t.common.hoursShort} · {r.seatsLeft} {t.common.seats}
                 </div>
               </div>
-              <PriceTag amount={r.priceVnd} locale={locale} />
+              <div className="flex flex-col items-end gap-2">
+                <PriceTag amount={r.priceVnd} locale={locale} />
+                <BookButton
+                  locale={locale}
+                  itemType="transport"
+                  itemId={r.id}
+                  label={t.common.book}
+                />
+              </div>
             </div>
           ))}
         </div>

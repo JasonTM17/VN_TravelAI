@@ -377,7 +377,7 @@ export type Booking = {
 };
 
 export type CreateBookingBody = {
-  itemType: "hotel" | "tour" | "flight";
+  itemType: "hotel" | "tour" | "flight" | "transport";
   itemId: string;
   guests: number;
   startDate: string;
