@@ -12,16 +12,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/** Fallback metadata; locale layout overrides via generateMetadata. */
 export const metadata: Metadata = {
   title: {
-    default: "TravelAI — Lên kế hoạch chuyến đi thông minh",
+    default: "TravelAI",
     template: "%s · TravelAI",
   },
-  description:
-    "TravelAI — du lịch Việt Nam & thế giới, khách sạn, tour, chuyến bay mock, AI trip planner.",
+  description: "TravelAI — Vietnam & world travel planner",
   openGraph: {
     title: "TravelAI",
-    description: "Lên kế hoạch chuyến đi thông minh — Việt Nam & Thế giới",
+    description: "Plan smarter trips — Vietnam & the world",
     images: ["/images/brand/og.jpg"],
   },
 };
