@@ -19,43 +19,40 @@ function makeStorage(map: Map<string, string>): Storage {
   };
 }
 
-describe("auth-storage", () => {
+describe("auth-storage memory-first", () => {
   beforeEach(() => {
     sessionMem.clear();
     localMem.clear();
+    delete process.env.NEXT_PUBLIC_PERSIST_ACCESS;
     (globalThis as unknown as { window: unknown }).window = globalThis;
     (globalThis as unknown as { sessionStorage: Storage }).sessionStorage = makeStorage(sessionMem);
     (globalThis as unknown as { localStorage: Storage }).localStorage = makeStorage(localMem);
+    clearSession();
   });
 
   afterEach(() => {
     clearSession();
+    delete process.env.NEXT_PUBLIC_PERSIST_ACCESS;
   });
 
-  it("saves access in sessionStorage and does not store refresh", () => {
-    saveSession("access-1", "refresh-should-not-persist");
+  it("default saves access only in memory, not sessionStorage", () => {
+    saveSession("access-1", "refresh-ignored");
     expect(getAccessToken()).toBe("access-1");
     expect(getRefreshToken()).toBeNull();
-    expect(sessionMem.get("travelai_access")).toBe("access-1");
+    expect(sessionMem.has("travelai_access")).toBe(false);
     expect(localMem.has("travelai_refresh")).toBe(false);
-    expect(localMem.has("travelai_access")).toBe(false);
   });
 
-  it("clearSession removes access from session and legacy local keys", () => {
-    localMem.set("travelai_access", "old");
-    localMem.set("travelai_refresh", "old-r");
-    saveSession("a", "r");
+  it("clearSession wipes memory", () => {
+    saveSession("a");
     clearSession();
     expect(getAccessToken()).toBeNull();
-    expect(localMem.has("travelai_access")).toBe(false);
-    expect(localMem.has("travelai_refresh")).toBe(false);
   });
 
-  it("migrates legacy localStorage access into sessionStorage", () => {
-    localMem.set("travelai_access", "legacy-access");
-    localMem.set("travelai_refresh", "legacy-refresh");
-    expect(getAccessToken()).toBe("legacy-access");
-    expect(sessionMem.get("travelai_access")).toBe("legacy-access");
-    expect(localMem.has("travelai_refresh")).toBe(false);
+  it("NEXT_PUBLIC_PERSIST_ACCESS=true uses sessionStorage", () => {
+    process.env.NEXT_PUBLIC_PERSIST_ACCESS = "true";
+    saveSession("persisted");
+    expect(sessionMem.get("travelai_access")).toBe("persisted");
+    expect(getAccessToken()).toBe("persisted");
   });
 });

@@ -1,13 +1,22 @@
 /**
- * Access token storage only.
- * Refresh token lives in httpOnly cookie on the identity origin (credentials: include).
+ * Access token storage.
+ * Default: in-memory only (mitigates XSS reading sessionStorage).
+ * Optional: NEXT_PUBLIC_PERSIST_ACCESS=true writes sessionStorage for tab reloads without waiting refresh.
+ * Refresh token is httpOnly cookie on identity origin only.
  */
+
 const ACCESS = "travelai_access";
-/** Legacy key — cleared on write/clear so old dual-localStorage sessions migrate. */
 const LEGACY_REFRESH = "travelai_refresh";
+
+let accessMem: string | null = null;
+
+function persistAccessEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_PERSIST_ACCESS === "true" || process.env.NEXT_PUBLIC_PERSIST_ACCESS === "1";
+}
 
 function accessStore(): Storage | null {
   if (typeof window === "undefined") return null;
+  if (!persistAccessEnabled()) return null;
   try {
     return window.sessionStorage;
   } catch {
@@ -24,48 +33,66 @@ function legacyLocal(): Storage | null {
   }
 }
 
-/** Persist access token (sessionStorage). Second arg ignored (refresh is httpOnly cookie). */
+/** Persist access token. Second arg ignored (refresh is httpOnly cookie). */
 export function saveSession(accessToken: string, refreshToken?: string) {
   void refreshToken;
+  accessMem = accessToken;
   const ss = accessStore();
-  if (!ss) return;
-  ss.setItem(ACCESS, accessToken);
-  // Migrate away from localStorage refresh
+  if (ss) ss.setItem(ACCESS, accessToken);
   const ls = legacyLocal();
   ls?.removeItem(LEGACY_REFRESH);
   ls?.removeItem(ACCESS);
+  if (!persistAccessEnabled()) {
+    try {
+      window.sessionStorage?.removeItem(ACCESS);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 export function clearSession() {
-  accessStore()?.removeItem(ACCESS);
+  accessMem = null;
+  try {
+    window.sessionStorage?.removeItem(ACCESS);
+  } catch {
+    /* ignore */
+  }
   const ls = legacyLocal();
   ls?.removeItem(ACCESS);
   ls?.removeItem(LEGACY_REFRESH);
 }
 
 export function getAccessToken(): string | null {
-  const ss = accessStore();
-  if (ss) {
-    const v = ss.getItem(ACCESS);
-    if (v) return v;
+  if (accessMem) return accessMem;
+  if (typeof window === "undefined") return null;
+  if (persistAccessEnabled()) {
+    try {
+      const v = window.sessionStorage.getItem(ACCESS);
+      if (v) {
+        accessMem = v;
+        return v;
+      }
+    } catch {
+      /* ignore */
+    }
   }
-  // One-time read of legacy localStorage access during migration
+  // Migrate legacy localStorage once
   const ls = legacyLocal();
   const legacy = ls?.getItem(ACCESS) ?? null;
   if (legacy) {
-    ss?.setItem(ACCESS, legacy);
+    accessMem = legacy;
     ls?.removeItem(ACCESS);
     ls?.removeItem(LEGACY_REFRESH);
+    return legacy;
   }
-  return legacy;
+  return null;
 }
 
 /**
- * @deprecated Refresh is httpOnly cookie-only. Always returns null.
- * Kept so call sites compile during transition.
+ * @deprecated Refresh is httpOnly cookie-only.
  */
 export function getRefreshToken(): string | null {
-  // Wipe any leftover localStorage refresh
   legacyLocal()?.removeItem(LEGACY_REFRESH);
   return null;
 }

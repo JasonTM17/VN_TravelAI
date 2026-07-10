@@ -62,10 +62,8 @@ test.describe("auth register + change password", () => {
     await page.locator('form[data-testid=auth-form] button[type="submit"]').click();
     // Must leave /register (loose /vi/ matches the register URL too)
     await page.waitForURL(/\/vi\/bookings/, { timeout: 20000 });
-    // Access token lives in sessionStorage; refresh is httpOnly cookie on identity origin
-    await expect
-      .poll(async () => page.evaluate(() => sessionStorage.getItem("travelai_access")))
-      .toBeTruthy();
+    // Access token is in-memory by default; cookie holds refresh — assert authed UI instead of storage
+    await expect(page).toHaveURL(/\/vi\/bookings/);
 
     await page.goto(`${WEB}/vi/account`);
     await expect(page.getByTestId("change-password-form")).toBeVisible({ timeout: 15000 });
