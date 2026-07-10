@@ -45,10 +45,42 @@ model Hotel {
   createdAt       DateTime @default(now()) @map("created_at")
   destination     Destination @relation(fields: [destinationId], references: [id])
   reviews         Review[]
+  nightInventory  HotelNightInventory[]
 
   @@index([destinationId])
   @@index([priceFromVnd])
   @@map("hotels")
+}
+
+/// Per-night soft room inventory (full calendar, not PMS).
+model HotelNightInventory {
+  id        String   @id @default(uuid()) @db.Uuid
+  hotelId   String   @map("hotel_id") @db.Uuid
+  night     DateTime @db.Date
+  roomsLeft Int      @map("rooms_left")
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, night])
+  @@index([night])
+  @@map("hotel_night_inventory")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  channel   String   @default("email")
+  type      String
+  title     String
+  body      String   @db.Text
+  emailTo   String?  @map("email_to")
+  status    String   @default("pending")
+  meta      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  sentAt    DateTime? @map("sent_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("notifications")
 }
 
 model Tour {

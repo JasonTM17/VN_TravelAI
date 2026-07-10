@@ -4,12 +4,14 @@ import { prisma } from "../db.js";
 import { sendProblem } from "../lib/problem.js";
 import type { createAuthGuard } from "../lib/auth.js";
 import { applyPayment, canTransition, type BookingStatus } from "../lib/booking-state.js";
+import { canReserveSeats, isSeatInventoryType, seatsUpdateFilter } from "../lib/inventory.js";
+import { enumerateStayNights } from "../lib/hotel-nights.js";
 import {
-  canReserveRooms,
-  canReserveSeats,
-  isSeatInventoryType,
-  seatsUpdateFilter,
-} from "../lib/inventory.js";
+  decrementHotelNights,
+  ensureAndCheckHotelNights,
+  incrementHotelNights,
+} from "../lib/hotel-night-inventory.js";
+import { notifyBookingConfirmed } from "../lib/notify.js";
 
 const createSchema = z.object({
   itemType: z.enum(["hotel", "tour", "flight", "transport"]),
@@ -61,25 +63,23 @@ export async function bookingRoutes(
     if (itemType === "hotel") {
       const hotel = await prisma.hotel.findUnique({ where: { id: itemId } });
       if (!hotel) return sendProblem(reply, 404, "Not found", "Hotel not found");
-      // Soft inventory: 1 room unit per booking (not full PMS calendar)
-      if (!canReserveRooms(hotel.roomsLeft, 1)) {
-        return sendProblem(reply, 409, "Conflict", "No rooms left for this hotel");
+      const start = new Date(startDate);
+      const end = endDate ? new Date(endDate) : null;
+      const nightKeys = enumerateStayNights(start, end);
+      const check = await prisma.$transaction((tx) =>
+        ensureAndCheckHotelNights(tx, itemId, start, end, hotel.roomsLeft),
+      );
+      if (!check.ok) {
+        return sendProblem(reply, 409, "Conflict", check.reason);
       }
-      const nights =
-        endDate && endDate > startDate
-          ? Math.max(
-              1,
-              Math.round(
-                (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000,
-              ),
-            )
-          : 1;
+      const nights = nightKeys.length;
       totalVnd = hotel.priceFromVnd * nights * guests;
       itemSnapshot = {
         type: "hotel",
         slug: hotel.slug,
         name: hotel.name,
         nights,
+        nightKeys,
         roomsLeft: hotel.roomsLeft,
       };
     } else if (itemType === "tour") {
@@ -197,13 +197,26 @@ export async function bookingRoutes(
               throw new Error("INVENTORY");
             }
           } else if (booking.itemType === "hotel") {
-            const r = await tx.hotel.updateMany({
+            const snap = booking.itemSnapshot as { nightKeys?: string[] };
+            const nights =
+              snap.nightKeys ??
+              enumerateStayNights(booking.startDate, booking.endDate);
+            const hotel = await tx.hotel.findUnique({ where: { id: booking.itemId } });
+            const ensured = await ensureAndCheckHotelNights(
+              tx,
+              booking.itemId,
+              booking.startDate,
+              booking.endDate,
+              hotel?.roomsLeft ?? 20,
+            );
+            if (!ensured.ok) throw new Error("INVENTORY");
+            const ok = await decrementHotelNights(tx, booking.itemId, nights);
+            if (!ok) throw new Error("INVENTORY");
+            // keep aggregate roomsLeft roughly in sync (min across nights optional)
+            await tx.hotel.updateMany({
               where: { id: booking.itemId, roomsLeft: { gte: 1 } },
               data: { roomsLeft: { decrement: 1 } },
             });
-            if (r.count === 0) {
-              throw new Error("INVENTORY");
-            }
           }
         }
 
@@ -216,6 +229,13 @@ export async function bookingRoutes(
         });
         return row;
       });
+      // Fire-and-forget notification (email log or SMTP)
+      void notifyBookingConfirmed({
+        userId: user.id,
+        email: user.email,
+        bookingId: updated.id,
+        totalVnd: updated.totalVnd,
+      }).catch(() => undefined);
       return { success: true, data: updated };
     } catch (err) {
       if (err instanceof Error && err.message === "INVENTORY") {
@@ -253,6 +273,10 @@ export async function bookingRoutes(
             data: { seatsLeft: { increment: booking.guests } },
           });
         } else if (booking.itemType === "hotel") {
+          const snap = booking.itemSnapshot as { nightKeys?: string[] };
+          const nights =
+            snap.nightKeys ?? enumerateStayNights(booking.startDate, booking.endDate);
+          await incrementHotelNights(tx, booking.itemId, nights);
           await tx.hotel.updateMany({
             where: { id: booking.itemId },
             data: { roomsLeft: { increment: 1 } },

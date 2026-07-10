@@ -14,6 +14,8 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().default("http://localhost:3000"),
   /** When set, /metrics requires Bearer or X-Metrics-Token. Empty = open (local). */
   METRICS_TOKEN: z.string().optional().default(""),
+  /** Optional HTTP mail gateway; empty = log-only notifications */
+  SMTP_URL: z.string().optional().default(""),
   LOG_LEVEL: z.string().default("info"),
 });
 
