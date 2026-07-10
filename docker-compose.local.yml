@@ -19,6 +19,9 @@ services:
   n8n:
     ports: !override
       - "55678:5678"
+    environment:
+      WEBHOOK_URL: http://127.0.0.1:55678/
+      N8N_HMAC_SECRET: travelai_n8n_hmac_dev_secret_change_me
   identity:
     ports: !override
       - "53002:3002"

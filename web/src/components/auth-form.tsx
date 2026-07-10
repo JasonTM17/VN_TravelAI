@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { saveSession } from "@/lib/auth-storage";
@@ -9,6 +9,7 @@ import { getDict, type Locale } from "@/lib/i18n";
 export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "register" }) {
   const t = getDict(locale);
   const router = useRouter();
+  const search = useSearchParams();
   const [email, setEmail] = useState("demo@travelai.local");
   const [password, setPassword] = useState("DemoTravelAI1!");
   const [fullName, setFullName] = useState("TravelAI Demo");
@@ -18,6 +19,7 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
   return (
     <form
       className="space-y-4"
+      data-testid="auth-form"
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -28,7 +30,12 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
               ? await api.login(email, password)
               : await api.register(email, password, fullName);
           saveSession(res.data.accessToken, res.data.refreshToken);
-          router.push(`/${locale}/bookings`);
+          const next = search.get("next");
+          const safeNext =
+            next && next.startsWith(`/${locale}`) && !next.startsWith("//")
+              ? next
+              : `/${locale}/bookings`;
+          router.push(safeNext);
         } catch (err) {
           setError(err instanceof Error ? err.message : "Auth failed");
         } finally {

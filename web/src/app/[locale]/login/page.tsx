@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { AuthForm } from "@/components/auth-form";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
@@ -18,7 +19,9 @@ export default async function LoginPage({
         <span className="gradient-text">{t.auth.loginTitle}</span>
       </h1>
       <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-elevated">
-        <AuthForm locale={locale} mode="login" />
+        <Suspense fallback={<div className="text-sm text-muted">...</div>}>
+          <AuthForm locale={locale} mode="login" />
+        </Suspense>
       </div>
     </div>
   );
