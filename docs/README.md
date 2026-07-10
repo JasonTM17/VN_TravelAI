@@ -63,6 +63,12 @@
 - [Product media](./media/README.md) — screenshot + GIF (dùng bởi README)
 - [Codebase scout](./reports/vietnam-travel-codebase-scout.md)
 - [Documentation update report](./reports/documentation-update-2026-07-10.md)
+- [Deep repository audit (2026-07-10)](./reports/2026-07-10-deep-repository-audit.md)
+- [Security threat model](./reports/2026-07-10-security-threat-model.md)
+- [Feature gap matrix](./reports/2026-07-10-feature-gap-matrix.md)
+- [AI security audit](./reports/2026-07-10-ai-security-audit.md)
+- [Docker/CI audit + packages RCA](./reports/2026-07-10-docker-cicd-audit.md)
+- Master remediation: `plans/260710-1800-travelai-master-remediation/`
 
 ## Quy ước trạng thái
 
