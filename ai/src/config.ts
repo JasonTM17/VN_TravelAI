@@ -15,6 +15,9 @@ const envSchema = z.object({
   IDENTITY_JWKS_URL: z.string().default("http://127.0.0.1:3002/.well-known/jwks.json"),
   IDENTITY_ISSUER: z.string().default("https://identity.travelai.local"),
   IDENTITY_AUDIENCE: z.string().default("travelai-web"),
+  CORS_ORIGINS: z
+    .string()
+    .default("http://localhost:3000,http://127.0.0.1:3000,http://localhost:53000,http://127.0.0.1:53000"),
   LOG_LEVEL: z.string().default("info"),
 });
 

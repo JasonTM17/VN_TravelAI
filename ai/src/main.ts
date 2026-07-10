@@ -31,7 +31,8 @@ const itineraries = new Map<string, Record<string, unknown>>();
 async function main() {
   const config = loadConfig();
   const app = Fastify({ logger: { level: config.LOG_LEVEL } });
-  await app.register(cors, { origin: true, credentials: true });
+  const origins = config.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
+  await app.register(cors, { origin: origins, credentials: true });
   await app.register(helmet, {
     contentSecurityPolicy: {
       useDefaults: false,
