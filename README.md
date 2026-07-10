@@ -1,114 +1,152 @@
 # TravelAI
 
-Documentation: [English](README.md) · Vietnamese notes in product UI (`vi` default)
-
 <p align="center">
-  <img src="https://img.shields.io/badge/web-Next.js_15-black?logo=next.js" alt="Web">
-  <img src="https://img.shields.io/badge/api-NestJS-ea2845?logo=nestjs" alt="API">
-  <img src="https://img.shields.io/badge/identity-Ed25519_JWKS-2F6FED" alt="Identity">
-  <img src="https://img.shields.io/badge/ai-n8n_orchestrator-18e46a" alt="AI">
-  <img src="https://img.shields.io/badge/db-PostgreSQL-336791?logo=postgresql" alt="DB">
-  <img src="https://img.shields.io/badge/search-Meilisearch-FF5CAA" alt="Search">
-  <img src="https://img.shields.io/badge/docker-Hub-2496ED?logo=docker" alt="Docker">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="docs/media/demo-walkthrough.gif" alt="TravelAI demo walkthrough" width="720" />
 </p>
 
-**TravelAI** — *Lên kế hoạch chuyến đi thông minh — Việt Nam & Thế giới.*
+<p align="center">
+  <strong>Lên kế hoạch chuyến đi thông minh — Việt Nam &amp; Thế giới</strong><br/>
+  Traveloka-style marketplace + AI concierge (DeepSeek V4 Flash) · monorepo Docker
+</p>
 
-Traveloka-style travel marketplace (destinations, hotels, flights mock, tours) plus a dedicated **AI Trip Planner** concierge.
+<p align="center">
+  <img src="https://img.shields.io/badge/web-Next.js_15-black?logo=next.js" alt="Web" />
+  <img src="https://img.shields.io/badge/api-Fastify-000000?logo=fastify" alt="API" />
+  <img src="https://img.shields.io/badge/identity-Ed25519_JWKS-2F6FED" alt="Identity" />
+  <img src="https://img.shields.io/badge/ai-DeepSeek_V4_Flash-4D6BFE" alt="AI" />
+  <img src="https://img.shields.io/badge/db-PostgreSQL-336791?logo=postgresql" alt="DB" />
+  <img src="https://img.shields.io/badge/search-Meilisearch-FF5CAA" alt="Search" />
+  <img src="https://img.shields.io/badge/docker-Hub-2496ED?logo=docker" alt="Docker" />
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
+</p>
+
+---
+
+## Screenshots
+
+| Home + live catalog stats | Hotels list + pagination |
+|:---:|:---:|
+| ![Home](docs/media/01-home.png) | ![Hotels](docs/media/02-hotels.png) |
+
+| Multi-slide hotel gallery | Tours catalog |
+|:---:|:---:|
+| ![Gallery](docs/media/03-hotel-gallery.png) | ![Tours](docs/media/04-tours.png) |
+
+| Global chatbot | Admin console |
+|:---:|:---:|
+| ![Chatbot](docs/media/06-chatbot.png) | ![Admin](docs/media/07-admin.png) |
+
+| AI planner | Mobile gallery (~390px) |
+|:---:|:---:|
+| ![AI](docs/media/08-ai-planner.png) | ![Mobile](docs/media/10-mobile-gallery.png) |
+
+More assets: [`docs/media/`](docs/media/README.md)
+
+---
+
+## Features
+
+- **Catalog (seeded Postgres)**: 40+ destinations · 140+ hotels · 120+ tours · flights & transport · multi-image galleries from DB `images[]`
+- **Home promos**: data-driven `GET /v1/promos` (not hard-coded product cards)
+- **Search**: Meilisearch reindex after boot
+- **Auth**: Ed25519 JWT + dual JWKS (identity)
+- **AI concierge**: chat + itinerary via n8n/HMAC; **DeepSeek V4 Flash** when `DEEPSEEK_API_KEY` is set
+- **Admin**: `/vi/admin` reindex + audit log (`role=admin`)
+- **Mobile web**: responsive navbar, promo carousel, touch targets
+- **Containers**: multi-service Docker Compose + Docker Hub images
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  Browser --> Web[web :3000]
-  Web --> Identity[identity :3002]
-  Web --> API[api :3001]
-  Web --> AI[ai :3003]
+  Browser --> Web[web]
+  Web --> Identity[identity]
+  Web --> API[api]
+  Web --> AI[ai]
   API --> PG[(postgres)]
   API --> Redis[(redis)]
   API --> Meili[(meilisearch)]
-  API --> MinIO[(minio)]
   Identity --> PG
-  Identity --> Redis
-  AI --> N8N[n8n :5678]
-  AI --> API
+  AI --> ChatWebhook[chat-webhook / n8n]
+  ChatWebhook --> DeepSeek[DeepSeek API]
 ```
 
-| Service | Path | Port | Docker Hub |
-|---------|------|------|------------|
-| web | [`web/`](web/README.md) | 3000 | `nguyenson1710/travelai-web` |
-| api | [`api/`](api/README.md) | 3001 | `nguyenson1710/travelai-api` |
-| identity | [`identity/`](identity/README.md) | 3002 | `nguyenson1710/travelai-identity` |
-| ai | [`ai/`](ai/README.md) | 3003 | `nguyenson1710/travelai-ai` |
+| Service | Path | Host port (local overlay) | Docker Hub |
+|---------|------|---------------------------|------------|
+| web | [`web/`](web/README.md) | **53000** | `nguyenson1710/travelai-web` |
+| api | [`api/`](api/README.md) | **53001** | `nguyenson1710/travelai-api` |
+| identity | [`identity/`](identity/README.md) | **53002** | `nguyenson1710/travelai-identity` |
+| ai | [`ai/`](ai/README.md) | **53003** | `nguyenson1710/travelai-ai` |
 
-Contract: [`docs/openapi.yaml`](docs/openapi.yaml) · ADRs: [`docs/adr/`](docs/adr/)
+Contract: [`docs/openapi.yaml`](docs/openapi.yaml) · ADRs: [`docs/adr/`](docs/adr/) · Design: [`.stitch/`](.stitch/)
 
-## Quick start (5 minutes)
+> SSR inside Docker uses `API_INTERNAL_URL=http://api:3001` while the browser uses `NEXT_PUBLIC_*` host ports.
+
+---
+
+## Quick start
 
 ```bash
+git clone https://github.com/JasonTM17/VN_TravelAI.git
+cd VN_TravelAI
 cp .env.example .env
-# Default ports (3000–3003). If they clash with other projects (e.g. FoodFlow):
+
+# Remapped ports (avoids FoodFlow / other stacks on 3000–3003)
 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
-# Web:      http://localhost:53000  (default compose: :3000)
-# API:      http://localhost:53001/healthz
-# Identity: http://localhost:53002/healthz
-# AI:       http://localhost:53003/healthz
-# n8n:      http://localhost:55678
-# Local overlay sets NEXT_PUBLIC_* + CORS to the remapped host ports.
 ```
 
-Demo user (local only): see `.env.example` (`DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD`).
+| URL | Service |
+|-----|---------|
+| http://localhost:53000 | Web (default locale `vi`) |
+| http://localhost:53001/healthz | API |
+| http://localhost:53002/healthz | Identity |
+| http://localhost:53003/healthz | AI |
 
-### Live chatbot (DeepSeek V4 Flash)
+**Demo user** (local only — see `.env.example`):
 
-1. Create a key at [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).
-2. Put it in `.env` (never commit the real value):
+- Email: `demo@travelai.local`
+- Password: `DemoTravelAI1!`
+- Role: **admin** (local seed)
 
 ```bash
+# Smoke
+./scripts/smoke.ps1
+# Live chat (optional DeepSeek key in .env)
+node scripts/smoke-chat.mjs
+```
+
+### DeepSeek live chat
+
+```env
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_MODEL=deepseek-v4-flash
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 ```
 
-3. Restart the chat webhook + AI:
-
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d chat-webhook ai
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --force-recreate chat-webhook ai
+# or
+./scripts/reload-deepseek-chat.ps1
 ```
 
-4. Verify live replies:
+---
 
-```bash
-node scripts/smoke-chat.mjs
-# strict live gate (fails if still degraded):
-# REQUIRE_LIVE=1 node scripts/smoke-chat.mjs
+## Repository layout
+
+```
+api/          Fastify catalog, booking, promos, admin reindex
+identity/     Auth, JWKS, demo admin user
+ai/           Chat/itinerary orchestrator → HMAC webhook
+web/          Next.js 15 App Router UI
+infra/n8n/    Workflow JSON (travel-chat → DeepSeek)
+docs/         OpenAPI, ADRs, media screenshots
+scripts/      Smoke, image audit, DeepSeek helpers
+.stitch/      Design system exports (tracked)
 ```
 
-Without `DEEPSEEK_API_KEY`, chat still works offline with `degraded: true` (no 5xx).
+## Non-goals (MVP)
 
-## Packages (Docker Hub)
-
-Images publish on push to `main` (`latest` + git SHA):
-
-- `nguyenson1710/travelai-web`
-- `nguyenson1710/travelai-api`
-- `nguyenson1710/travelai-identity`
-- `nguyenson1710/travelai-ai`
-
-GitHub Actions secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`.
-
-## Core capabilities (MVP)
-
-- Explore destinations (Vietnam first + world hotspots)
-- Browse hotels, tours, mock flights/transport
-- Booking funnel with mock payment
-- Accounts: auth, wishlist, booking history
-- **AI Trip Planner**: chat + multi-day itinerary via n8n
-
-## Non-goals (phase 1)
-
-Real PSP settlement, Flutter apps, live GDS airline inventory, multi-vendor PMS.
+Real PSP settlement · native Flutter apps · live airline GDS · multi-vendor PMS.
 
 ## License
 
