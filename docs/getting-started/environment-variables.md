@@ -69,6 +69,13 @@
 | RUN_SEED | api entrypoint | no | no | yes | Seed on boot | `true` local | example |
 | ADMIN_REINDEX_TOKEN | api | no* | **yes** | yes | Dual factor reindex | ≥16 chars | api README |
 | MEILI_* | api | yes search | see above | yes | Search | | example |
+| SMTP_URL | api mailer | no | partial | yes | `smtp://` or `https://` gateway; empty = log | *(empty)* | example |
+| SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS | api | no | **yes** pass | yes | Host SMTP | | example |
+| SMTP_SECURE / SMTP_FROM | api | no | no | yes | TLS + From header | `false` / `TravelAI <noreply@…>` | example |
+| EMBEDDING_API_KEY / OPENAI_API_KEY | api vectors | no | **yes** | yes | Embeddings API; empty = local hash | *(empty)* | example |
+| EMBEDDING_BASE_URL / EMBEDDING_MODEL | api | no | no | yes | Embed endpoint | OpenAI-compatible | example |
+| PINECONE_API_KEY / PINECONE_INDEX | api | no | **yes** key | yes | Optional vector backend | | example |
+| METRICS_TOKEN | api/identity/ai | no | **yes** | yes | Gate `/metrics` | *(empty local)* | example |
 
 ## 4. AI / DeepSeek / n8n
 
@@ -78,6 +85,7 @@
 | N8N_WEBHOOK_BASE_URL | ai | yes chat | no | yes | Webhook base | `http://chat-webhook:5678/webhook` local | compose.local |
 | N8N_HMAC_SECRET | ai + webhook | yes | **yes** | yes | HMAC SHA-256 | `long_random_dev` | example |
 | AI_DEGRADED_MODE | ai | no | no | yes | Force degrade | `false` | example |
+| API_BASE_URL | ai | yes RAG | no | yes | Catalog/vector RAG base | `http://api:3001` | compose / config |
 | IDENTITY_JWKS_URL | ai | yes | no | yes | Auth verify | identity JWKS | example |
 | CORS_ORIGINS | ai | yes prod | no | yes | CORS | | example |
 | DEEPSEEK_API_KEY | chat-webhook | optional live | **yes** | yes | DeepSeek key | *(empty → degrade)* | example |
@@ -98,6 +106,10 @@
 | NEXT_PUBLIC_DEFAULT_LOCALE | web | no | no | **no** | Locale | `vi` | example |
 | NEXT_PUBLIC_CSP_CONNECT_SRC | web | no | no | **no** | Extra CSP connect-src | `https://api.example.com` | next.config |
 | NEXT_PUBLIC_BOOK_AUTOPAY | web | no | no | **no** | Auto mock pay on book | `true` only demo | book-button |
+| NEXT_PUBLIC_PERSIST_ACCESS | web | no | no | **no** | Access token in sessionStorage | `false` default | auth-storage |
+| API_INTERNAL_URL | web SSR | Docker yes | no | yes | In-compose API | `http://api:3001` | compose |
+| IDENTITY_INTERNAL_URL | web SSR | Docker yes | no | yes | In-compose identity | `http://identity:3002` | compose |
+| AI_INTERNAL_URL | web SSR | Docker yes | no | yes | In-compose AI | `http://ai:3003` | compose |
 | NEXT_PUBLIC_DEMO_PREFILL | web | no | no | **no** | Prefill login form | local | deployment-guide |
 | API_INTERNAL_URL | web SSR | yes Docker | no | yes | Server-side API | `http://api:3001` | example |
 | IDENTITY_INTERNAL_URL | web SSR | no | no | yes | SSR identity | `http://identity:3002` | example |

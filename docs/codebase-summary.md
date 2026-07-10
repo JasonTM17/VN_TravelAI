@@ -1,7 +1,7 @@
 # Codebase summary — TravelAI
 
 **Purpose:** Bản đồ monorepo cho onboarding.  
-**Last verified:** `e715b96`
+**Last verified:** `9f4d424`
 
 ## 1. Hình dạng repo
 
@@ -10,9 +10,9 @@
 ```
 VN_TravelAI/
 ├── web/           # Next.js 15 UI
-├── api/           # Fastify catalog/booking/search
+├── api/           # Fastify catalog / booking / search / vectors / notifications
 ├── identity/      # Fastify auth + JWKS
-├── ai/            # Fastify chat/itinerary orchestrator
+├── ai/            # Fastify chat/itinerary + RAG orchestration
 ├── e2e/           # Playwright
 ├── scripts/       # smoke, DeepSeek helpers, audits
 ├── infra/         # postgres init, n8n workflow JSON
@@ -23,7 +23,7 @@ VN_TravelAI/
 ```
 
 > [!NOTE]
-> ADR-0002 table có nhắc NestJS lịch sử; **implementation hiện tại là Fastify 5** (ADR-0003, `*/package.json`).
+> ADR-0002 table có nhắc NestJS lịch sử; **implementation hiện tại là Fastify 5** (ADR-0003).
 
 ## 2. Stack (CONFIRMED)
 
@@ -35,7 +35,9 @@ VN_TravelAI/
 | DB | PostgreSQL 16 (2 DBs) | compose |
 | Cache / RL | Redis 7 | compose |
 | Search | Meilisearch 1.11 | compose + `api/src/lib/meili.ts` |
-| AI path | HMAC webhook → DeepSeek HTTP | `scripts/lib/deepseek-travel-chat.mjs` |
+| Vectors | local hash / OpenAI-compatible embed + Pinecone optional | `api/src/lib/embeddings.ts`, `vector-store.ts` |
+| Mail | nodemailer SMTP / HTTP gateway / log | `api/src/lib/mailer.ts` |
+| AI path | HMAC webhook → DeepSeek HTTP + tools | `scripts/lib/deepseek-travel-chat.mjs` |
 | Contract | OpenAPI 3.1 | `docs/openapi.yaml` |
 | Package mgr | pnpm (per-service locks) | `*/pnpm-lock.yaml` |
 
@@ -43,16 +45,16 @@ VN_TravelAI/
 
 | Service | Role | Default container port | Local host (overlay) |
 |---------|------|------------------------:|----------------------:|
-| web | SSR/UI | 3000 | 53000 |
-| api | Catalog, Meili, bookings, wishlist, admin | 3001 | 53001 |
-| identity | Auth, JWKS, lockout | 3002 | 53002 |
-| ai | Chat/itinerary → webhook | 3003 | 53003 |
+| web | SSR/UI, booking UI, chatbot SSE | 3000 | 53000 |
+| api | Catalog, Meili, vectors, bookings, PMS, reviews, notifications, admin | 3001 | 53001 |
+| identity | Auth, JWKS, lockout, httpOnly refresh cookie | 3002 | 53002 |
+| ai | Chat/SSE/itinerary → webhook + catalog RAG | 3003 | 53003 |
 | postgres | catalog + identity DBs | 5432 | (local overlay maps) |
 | redis | rate limits | 6379 | |
 | meilisearch | full-text | 7700 | |
 | n8n | workflow runtime (base compose) | 5678 | |
 | chat-webhook | local DeepSeek stand-in | — | local overlay only |
-| minio | object storage | 9000 | **DISCONNECTED** (app không dùng S3 client) |
+| minio | object storage | 9000 | **DISCONNECTED** |
 
 ## 4. Entry points
 
@@ -68,19 +70,20 @@ VN_TravelAI/
 
 | Store | Models (high level) |
 |-------|---------------------|
-| `travelai` (api) | Destination, Hotel, Tour, Flight, Transport, Review, Booking, Wishlist, Itinerary, Promo, AdminAuditLog |
+| `travelai` (api) | Destination, Hotel, HotelRoomType, RatePlan, HotelNightInventory, Tour, Flight, Transport, Review, Booking, PaymentAttempt, Wishlist, Itinerary, Promo, Notification, ChatConversation, ChatMessage, VectorDocument, AdminAuditLog |
 | `travelai_identity` | User, RefreshToken |
 | Meili indexes | destinations, hotels, tours (reindex admin/boot) |
+| Vectors | Postgres `vector_documents` ± Pinecone index |
 | Redis | rate-limit keys |
-| ai memory | itinerary `Map` in-process (lost on restart) |
+| ai memory | itinerary `Map` in-process (lost on restart; optional DB persist) |
 
 ## 6. Tests & CI
 
 | Kind | Location |
 |------|----------|
-| Unit Vitest | `identity|api|ai|web` `*.test.ts` |
+| Unit Vitest | `identity\|api\|ai\|web` `*.test.ts` |
 | E2E Playwright | `e2e/tests/` |
-| CI | `.github/workflows/ci.yml` (unit hard-fail; lint advisory) |
+| CI | `.github/workflows/ci.yml` (unit + lint hard-fail) |
 | E2E CI | `.github/workflows/e2e.yml` gated `E2E_ENABLED` |
 | Publish | `docker-publish.yml`, `release.yml` |
 | Security scans | trivy, codeql, gitleaks |
@@ -89,10 +92,10 @@ VN_TravelAI/
 
 - ADRs: `docs/adr/`
 - Media: `docs/media/` (README gallery)
-- Stitch design exports: `.stitch/` (gitignored patterns may apply — check `.gitignore`)
-- Scout: `docs/reports/vietnam-travel-codebase-scout.md`
+- Scout / audits: `docs/reports/`
 
 ## 8. Related
 
 - [Architecture](./system-architecture.md)
 - [Services detail](./architecture/services.md)
+- [Roadmap](./project-roadmap.md)

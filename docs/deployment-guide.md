@@ -2,7 +2,7 @@
 
 **Purpose:** Local, image publish, và compose prod-like.  
 **Production cloud target:** UNKNOWN (không chọn AWS/Vercel/K8s trong docs).  
-**Last verified:** `e715b96`
+**Last verified:** `9f4d424`
 
 ## Mục lục
 

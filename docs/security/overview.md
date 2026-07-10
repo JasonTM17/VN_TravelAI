@@ -1,6 +1,6 @@
 # Security overview
 
-**Last verified:** `e715b96`  
+**Last verified:** `9f4d424`  
 **Reporting:** [SECURITY.md](../../SECURITY.md) — không mở public issue cho lỗ hổng.
 
 ## 1. AuthN / AuthZ
@@ -10,11 +10,12 @@
 | Ed25519 JWT + dual JWKS | COMPLETE | `identity/src/lib/keys.ts` |
 | Prod PEM fail-closed | COMPLETE | `loadKeySlots` |
 | Refresh rotate + hash store | COMPLETE | `RefreshToken` model |
+| Refresh httpOnly cookie | COMPLETE | identity auth response |
 | Account lockout | COMPLETE | User fields + login |
-| Admin role checks | PARTIAL | JWT role + admin routes |
+| Admin role checks | COMPLETE path | JWT role + admin routes + optional admin token |
 | IDOR on bookings | mitigated by `userId` filter | `bookings.ts` |
-| Session storage | Improved | Access **memory-only** default; refresh **httpOnly cookie**; opt-in `NEXT_PUBLIC_PERSIST_ACCESS` |
-| JSON refresh body | Improved | Omitted unless `ALLOW_BODY_REFRESH=true` |
+| Session storage | COMPLETE baseline | Access memory-only default; opt-in `NEXT_PUBLIC_PERSIST_ACCESS` |
+| JSON refresh body | gated | `ALLOW_BODY_REFRESH` |
 
 ## 2. Network & headers
 
@@ -39,8 +40,10 @@
 | HMAC outbound + inbound raw body | COMPLETE |
 | Chat requires JWT | COMPLETE |
 | Tool abuse | Mitigated | Read-only catalog tools; args validated; no book/admin tools |
-| Prompt framing | Improved | USER_START/END + untrusted note (`prompt-guard.mjs`) |
-| Prompt injection | PARTIAL |
+| Catalog RAG | Public catalog only | Meili + vectors |
+| Prompt framing | Improved | USER_START/END + untrusted note |
+| Prompt injection | PARTIAL | system prompt + framing |
+| PII redaction | NOT IMPLEMENTED | |
 
 ## 5. Containers & secrets
 
@@ -48,14 +51,16 @@
 |---------|--------|
 | Non-root images | COMPLETE |
 | Demo seed gated | COMPLETE `SEED_DEMO_USER` |
-| No secrets in README values beyond published demo local examples | policy |
 | Gitleaks / Trivy / CodeQL workflows | present |
 
-## 6. Payment
+## 6. Payment & mail
 
-Mock only — **no card data**. Real PSP NOT IMPLEMENTED.
+| Surface | Status |
+|---------|--------|
+| Payment | **MOCK** only — no card data |
+| Mailer | SMTP / HTTP / log — no secrets in logs |
 
 ## 7. Related
 
 - [Env vars](../getting-started/environment-variables.md)
-- Scout security section
+- [SECURITY.md](../../SECURITY.md)

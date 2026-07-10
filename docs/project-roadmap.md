@@ -1,7 +1,7 @@
 # Project roadmap — residual
 
 **Purpose:** Trạng thái sau product residual + ops close-out.  
-**Last verified:** post residual ops batch (HEAD on `main`).
+**Last verified:** `9f4d424` on `main` (MVP product path complete; ops/PSP residuals remain).
 
 ## 1. Engineering baseline (hardening) — DONE
 
@@ -34,10 +34,13 @@
 | Real PSP | NOT IMPLEMENTED | product decision required |
 | User reviews write | COMPLETE path | POST /v1/reviews + FE form |
 | Hotel soft rooms inventory | COMPLETE path | roomsLeft + per-night calendar |
-| Email/notification | COMPLETE path | Notification table + SMTP_URL or log |
+| Email/notification | COMPLETE path | nodemailer SMTP / HTTP gateway / log |
 | Chat SSE streaming | COMPLETE path | POST /v1/chat/stream |
-| RAG (Meili retrieval) | COMPLETE path | catalog-rag into LLM context |
+| RAG (Meili + vectors) | COMPLETE path | catalog-rag + Pinecone/Postgres embeddings |
+| Read-only tool-calling | COMPLETE path | deepseek-tools |
 | Full hotel night calendar | COMPLETE path | HotelNightInventory |
+| PMS room types + rate plans | COMPLETE path | HotelRoomType / RatePlan + FE selectors |
+| Admin vector reindex | COMPLETE path | POST /v1/admin/reindex-vectors |
 | Real PSP | NOT IMPLEMENTED | product decision |
 
 ## 4. Explicit non-goals

@@ -23,7 +23,7 @@
 
 <p align="center">
   <strong>Project status:</strong> MVP demo + production <em>hardening baseline</em> trên monorepo service-split.<br/>
-  Payment = <strong>MOCK</strong> · AI chat = <strong>PARTIAL</strong> (DeepSeek live khi có key; không RAG/tool-calling) · Cloud deploy target = <strong>UNKNOWN</strong>
+  Payment = <strong>MOCK</strong> · AI chat = <strong>COMPLETE path</strong> (DeepSeek + Meili/vector RAG + tools + SSE; live khi có key) · Cloud deploy target = <strong>UNKNOWN</strong>
 </p>
 
 <p align="center">
@@ -44,12 +44,14 @@
 | Live catalog (seed Postgres) + promo carousel | COMPLETE |
 | Hotels / tours list, detail, multi-image gallery | COMPLETE |
 | Meilisearch unified search | COMPLETE |
-| Ed25519 JWT + dual JWKS identity + client refresh | COMPLETE |
+| Ed25519 JWT + dual JWKS identity + httpOnly refresh cookie | COMPLETE |
 | Booking lifecycle + **mock** pay / cancel state machine | COMPLETE + MOCK pay |
-| Global chatbot + AI itinerary planner (DeepSeek path) | PARTIAL |
-| Admin reindex + audit | PARTIAL |
+| Hotel PMS (room types + rate plans + night inventory) | COMPLETE (demo PMS) |
+| Email notifications (SMTP / HTTP gateway / log) | COMPLETE path |
+| Global chatbot + AI itinerary (DeepSeek + RAG + tools + SSE) | COMPLETE path (key optional → degraded) |
+| Admin Meili reindex + vector reindex + audit | COMPLETE |
 | Responsive mobile web | COMPLETE (demo UX) |
-| Docker Compose multi-service · Hub + GHCR · Releases | COMPLETE tooling |
+| Docker Compose multi-service · Hub + GHCR · Releases | COMPLETE tooling (publish may need billing/secrets) |
 
 ---
 
@@ -79,15 +81,17 @@ More assets: [`docs/media/`](docs/media/README.md) (gồm `05-explore`, `09-mobi
 
 - **Catalog (seeded Postgres)**: 40+ destinations · 140+ hotels · 120+ tours · flights & transport · multi-image galleries from DB `images[]`
 - **Home promos**: data-driven `GET /v1/promos` (not hard-coded product cards)
-- **Search**: Meilisearch reindex after boot / admin
-- **Auth**: Ed25519 JWT + dual JWKS (identity); web refresh on 401
-- **AI concierge**: chat + itinerary via n8n/HMAC; **DeepSeek V4 Flash** when `DEEPSEEK_API_KEY` is set; degraded fallback otherwise
-- **Admin**: `/vi/admin` reindex + audit log (`role=admin`)
+- **Search**: Meilisearch reindex after boot / admin; optional **vector** search (`/v1/search/vectors`)
+- **Auth**: Ed25519 JWT + dual JWKS; refresh via **httpOnly cookie**; access token in memory (optional sessionStorage)
+- **Bookings**: hotel/tour/flight/transport; hotel **room type + rate plan**; night inventory; mock pay ledger
+- **Notifications**: booking-confirmed email via nodemailer SMTP, HTTP gateway, or log-only
+- **AI concierge**: chat SSE + itinerary via n8n/HMAC; **DeepSeek** when key set; **Meili + vector RAG**; read-only **tool-calling**; degraded fallback without key
+- **Admin**: `/vi/admin` Meili reindex, vector reindex, audit log (`role=admin`)
 - **Mobile web**: responsive navbar, promo carousel, touch targets
 - **Containers**: multi-service Docker Compose · **Docker Hub** + **GitHub Packages (GHCR)** · tagged **Releases**
 
 > [!NOTE]
-> Booking payment là **mock** (không PSP). Transport browse-only. Không tích hợp Traveloka partner APIs.
+> Booking payment là **mock** (không real PSP). Không tích hợp Traveloka partner APIs. Cloud production host = chưa chốt.
 
 ---
 
@@ -178,16 +182,20 @@ Chi tiết AI: [`docs/ai/deepseek-chatbot.md`](docs/ai/deepseek-chatbot.md).
 | Chat Completions via webhook + HMAC | COMPLETE path |
 | Model default `deepseek-v4-flash` | COMPLETE config |
 | Degraded fallback without key | COMPLETE |
-| Streaming / RAG / tool-calling / chat DB | NOT IMPLEMENTED |
+| SSE streaming (`POST /v1/chat/stream`) | COMPLETE path |
+| Meili + vector RAG | COMPLETE path |
+| Read-only tool-calling | COMPLETE path |
+| Chat conversation/message DB | COMPLETE path |
 
 ---
 
 ## Security (tóm tắt)
 
 - Production JWT: Ed25519 PEM **fail-closed** · dual JWKS  
+- Refresh: **httpOnly cookie**; access token **memory-only** (opt-in `sessionStorage`)  
 - CORS allowlist · Meili filter sanitize · inbound HMAC **raw body**  
 - Demo admin seed **gated** (`SEED_DEMO_USER`)  
-- Residual: tokens trong `localStorage`; metrics public; mock pay  
+- Residual: CSP `unsafe-eval` (Next); mock pay (no real PSP); metrics open unless `METRICS_TOKEN`  
 
 Chi tiết: [`docs/security/overview.md`](docs/security/overview.md) · [`SECURITY.md`](SECURITY.md)
 
@@ -249,9 +257,9 @@ Publish flow: push `main` → `docker-publish` builds/pushes Hub + GHCR · tag `
 ## Repository layout
 
 ```
-api/          Fastify catalog, booking, promos, admin reindex
-identity/     Auth, JWKS, demo admin user (gated)
-ai/           Chat/itinerary orchestrator → HMAC webhook
+api/          Fastify catalog, PMS booking, vectors, mailer, admin
+identity/     Auth, JWKS, httpOnly refresh, demo admin (gated)
+ai/           Chat/SSE/itinerary + RAG → HMAC webhook
 web/          Next.js 15 App Router UI
 infra/n8n/    Workflow JSON (travel-chat → DeepSeek)
 docs/         OpenAPI, ADRs, media screenshots, guides
@@ -266,12 +274,14 @@ scripts/      Smoke, image audit, DeepSeek helpers
 | Item | Status |
 |------|--------|
 | Real PSP settlement | NOT IMPLEMENTED (mock pay only) |
-| Inventory / overselling control | NOT IMPLEMENTED |
-| Live airline GDS / multi-vendor PMS | OUT_OF_SCOPE |
+| Soft inventory (seats/nights/room types) | COMPLETE path (demo; not enterprise channel manager) |
+| Live airline GDS / multi-vendor enterprise PMS | OUT_OF_SCOPE |
 | Native Flutter apps | OUT_OF_SCOPE |
 | Traveloka partner integration | OUT_OF_SCOPE |
-| RAG / tool-calling | NOT IMPLEMENTED |
+| RAG / tool-calling / SSE / chat DB | COMPLETE path |
 | Always-on CI e2e | PARTIAL (`E2E_ENABLED`) |
+| Docker Hub/GHCR publish | Tooling COMPLETE; may need billing/secrets |
+| Cloud production host | UNKNOWN |
 
 ---
 

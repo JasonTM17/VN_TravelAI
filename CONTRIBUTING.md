@@ -61,9 +61,10 @@ CI: unit + build hard-fail; lint có thể advisory (`continue-on-error`).
 ## AI changes
 
 - Giữ boundary HMAC webhook (ADR-0004).
-- Không commit `DEEPSEEK_API_KEY`.
+- Không commit `DEEPSEEK_API_KEY` / embedding / Pinecone secrets.
 - Test helper: `scripts/lib/deepseek-travel-chat.test.mjs`.
-- Không tuyên bố RAG/tool-calling nếu chưa implement.
+- Tool-calling chỉ read-only catalog; không thêm tool mutate booking/pay.
+- RAG: Meili + `/v1/search/vectors` — cập nhật `docs/ai/deepseek-chatbot.md` khi đổi.
 
 ## Documentation
 

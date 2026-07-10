@@ -29,15 +29,16 @@ You should receive an acknowledgement within 72 hours.
 - Refresh tokens are opaque, stored hashed, and rotate on use.
 - Account lockout pairs with Redis rate limiting.
 
-### Web session residual
+### Web session
 
-- Browser currently stores access + refresh tokens in **localStorage**.
-- XSS can exfiltrate tokens — treat as known residual; cookie BFF is product follow-up.
+- **Refresh token:** httpOnly cookie on identity origin (not readable by JS).
+- **Access token:** in-memory by default; optional `NEXT_PUBLIC_PERSIST_ACCESS=true` uses `sessionStorage` (weaker XSS posture).
+- Legacy `localStorage` keys are cleared on save/logout.
 
 ### CORS & headers
 
 - `CORS_ORIGINS` allowlist on api, identity, and ai (not `origin: true`).
-- Web sets CSP and baseline security headers (`web/next.config.ts`). CSP still includes `unsafe-eval` for Next tooling.
+- Web sets CSP and baseline security headers (`web/next.config.ts`). CSP still includes `unsafe-eval` for Next tooling (accepted residual).
 
 ### Search
 
@@ -48,7 +49,8 @@ You should receive an acknowledgement within 72 hours.
 - Outbound webhooks HMAC-SHA256 signed (`N8N_HMAC_SECRET`).
 - Inbound callback verifies signature against **raw body** bytes.
 - Chat endpoints require JWT; per-user rate limits on Redis (fail-open if Redis down).
-- No tool-calling surface yet (reduces agent tool-abuse class until tools land).
+- Tool-calling is **read-only catalog** only (no book/admin tools); max rounds bounded.
+- Catalog RAG uses public search/vector endpoints (no private user data).
 
 ### Demo seed
 

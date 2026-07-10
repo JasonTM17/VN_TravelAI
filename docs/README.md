@@ -2,7 +2,7 @@
 
 **Mục đích:** Index chính thức cho developer, reviewer và operator.  
 **Source of truth:** source code, compose, schema, OpenAPI, ADR, CI.  
-**Last verified:** commit `e715b96` (2026-07-10).
+**Last verified:** commit `9f4d424` (2026-07-10).
 
 ## Bắt đầu nhanh
 

@@ -1,7 +1,7 @@
 # Design guidelines — TravelAI UI
 
 **Purpose:** Ngôn ngữ UI quan sát được từ `web/` (không regenerate design binary).  
-**Last verified:** `e715b96`
+**Last verified:** `9f4d424`
 
 ## 1. Platform
 

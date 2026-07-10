@@ -1,7 +1,7 @@
 # Database overview
 
 **Engine:** PostgreSQL 16 · **ORM:** Prisma 6  
-**Last verified:** `e715b96`
+**Last verified:** `9f4d424`
 
 ## 1. Databases
 
@@ -10,8 +10,6 @@
 | `travelai` | api | `api/prisma/schema.prisma` |
 | `travelai_identity` | identity | `identity/prisma/schema.prisma` |
 
-Init: compose postgres + `infra` scripts if present.
-
 ## 2. Identity models
 
 | Model | Notes |
@@ -19,28 +17,35 @@ Init: compose postgres + `infra` scripts if present.
 | User | email unique, passwordHash, role (`user`\|`admin`), failedLoginCount, lockedUntil |
 | RefreshToken | tokenHash unique, expiresAt, revokedAt, FK user cascade |
 
-Migrations: under `identity/prisma/migrations/`.
+Migrations: `identity/prisma/migrations/`.
 
-## 3. Catalog models (api)
+## 3. Catalog & booking models (api)
 
 | Model | Notes |
 |-------|-------|
 | Destination | slug unique, VI/EN text, geo optional |
-| Hotel | slug, priceFromVnd, images[], amenities[], destination FK |
+| Hotel | slug, priceFromVnd, images[], amenities[], `roomsLeft` aggregate |
+| HotelRoomType | PMS room type per hotel (STD/DLX…); maxOccupancy, roomsTotal, basePriceVnd |
+| RatePlan | BAR/BB/NR under room type; priceVnd, breakfast, refundable |
+| HotelNightInventory | per-night roomsLeft; optional `roomTypeId` scope |
 | Tour | slug, duration, priceFromVnd, images[] |
-| Flight | airline, route codes, priceVnd (search inventory) |
-| Transport | bus/train enum, seatsLeft, **not bookable via BookingItemType** |
-| Review | rating, body; optional hotel/tour |
-| Booking | userId (no cross-DB FK), itemType, status, idempotencyKey unique, money fields |
+| Flight | seatsLeft soft inventory |
+| Transport | bus/train; seatsLeft; **bookable** |
+| Review | rating/body; hotel/tour; partial unique per user in SQL |
+| Booking | itemType hotel/tour/flight/transport; snapshot JSON (PMS fields); idempotencyKey |
+| PaymentAttempt | mock pay audit |
 | WishlistItem | unique (userId, itemType, itemId) |
 | Itinerary | JSON days |
 | Promo | home carousel |
+| Notification | email/in-app status for booking confirm etc. |
+| ChatConversation / ChatMessage | persisted chat |
+| VectorDocument | embedding JSON + metadata; Pinecone mirror flag |
 | AdminAuditLog | admin actions |
 
-Migrations: `api/prisma/migrations/`.  
-Seed: `api/prisma/seed.ts` (gated Docker `RUN_SEED`).
+Migrations: `api/prisma/migrations/` (includes `20260710210000_pms_vectors`).  
+Seed: `api/prisma/seed.ts` (gated Docker `RUN_SEED`) — creates room types + rate plans per hotel.
 
-## 4. Booking status risks
+## 4. Booking status & inventory
 
 Allowed transitions (`api/src/lib/booking-state.ts`):
 
@@ -49,19 +54,23 @@ Allowed transitions (`api/src/lib/booking-state.ts`):
 - confirmed → cancelled  
 - cancelled → ∅  
 
-**MISSING:** inventory decrement, payment transaction table, refund entity.
+Inventory:
+
+- Hotel: night rows + optional room type; decrement on successful pay  
+- Flight/transport: `seatsLeft` decrement/restore  
+- Payment: **MOCK** only (`PaymentAttempt`)
 
 ## 5. Indexes & integrity
 
-- Unique: emails, slugs, refresh hash, booking idempotencyKey  
-- Indexes: destination country, hotel price, flight/transport routes  
+- Unique: emails, slugs, refresh hash, booking idempotencyKey, room type code per hotel, rate plan code per room type, vector (sourceType, sourceId)  
+- Indexes: destination country, hotel price, flight/transport routes, nights  
 - Soft delete: **not** implemented  
-- Chat messages table: **not** implemented  
 
 ## 6. Backup
 
-See [deployment-guide](../deployment-guide.md) `pg_dump` examples. After restore: admin Meili reindex.
+See [deployment-guide](../deployment-guide.md) `pg_dump` examples. After restore: admin Meili reindex (+ optional vector reindex).
 
 ## Related
 
 - [Runbook](../operations/runbook.md)
+- [API overview](../api/overview.md)

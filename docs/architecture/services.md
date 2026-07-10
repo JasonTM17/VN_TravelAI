@@ -1,6 +1,6 @@
 # Services overview
 
-**Last verified:** `e715b96`
+**Last verified:** `9f4d424`
 
 ## Application services
 
@@ -10,7 +10,7 @@
 |-------|-------|
 | Path | `web/` |
 | Stack | Next.js 15 App Router, React 19, Tailwind 4 |
-| Role | Customer UI SSR + client components |
+| Role | Customer UI SSR + client (booking PMS selectors, chatbot SSE, admin) |
 | Public ports local | **53000** |
 | Health | `GET /healthz`, `/readyz`, `/metrics` |
 | Depends on | identity, api, ai (HTTP) |
@@ -21,8 +21,8 @@
 | Field | Value |
 |-------|-------|
 | Path | `api/` |
-| Stack | Fastify 5, Prisma, Zod, Meili client, Redis |
-| Role | Catalog, search, bookings, wishlist, promos, admin |
+| Stack | Fastify 5, Prisma, Zod, Meili, Redis, nodemailer, Pinecone optional |
+| Role | Catalog, search, vectors, bookings, PMS inventory, reviews, notifications, admin |
 | Public ports local | **53001** |
 | Depends on | postgres (catalog), redis, meilisearch, identity JWKS |
 | README | [api/README.md](../../api/README.md) |
@@ -33,7 +33,7 @@
 |-------|-------|
 | Path | `identity/` |
 | Stack | Fastify 5, Prisma, jose (Ed25519), Redis |
-| Role | Register/login/refresh/logout/me/password, JWKS |
+| Role | Register/login/refresh/logout/me/password, JWKS, httpOnly refresh cookie |
 | Public ports local | **53002** |
 | Depends on | postgres (identity), redis |
 | README | [identity/README.md](../../identity/README.md) |
@@ -44,9 +44,9 @@
 |-------|-------|
 | Path | `ai/` |
 | Stack | Fastify 5, Redis, HMAC, JWKS verify |
-| Role | Chat + itinerary orchestrator |
+| Role | Chat + SSE stream + itinerary; catalog RAG via api |
 | Public ports local | **53003** |
-| Depends on | redis, identity JWKS, webhook base URL |
+| Depends on | redis, identity JWKS, webhook base URL, API_BASE_URL |
 | README | [ai/README.md](../../ai/README.md) |
 
 ## Data plane

@@ -1,11 +1,11 @@
 # System architecture — TravelAI
 
 **Purpose:** Kiến trúc runtime và ranh giới service.  
-**Last verified:** `e715b96`
+**Last verified:** `9f4d424`
 
 ## 1. Overview
 
-TravelAI là monorepo **service-based**: browser chỉ nói chuyện HTTP với `web`, `identity`, `api`, `ai`. Data plane: PostgreSQL (2 DB), Redis, Meilisearch. AI path: HMAC webhook → n8n **hoặc** local `chat-webhook` → DeepSeek.
+TravelAI là monorepo **service-based**: browser nói chuyện HTTP với `web`, `identity`, `api`, `ai`. Data plane: PostgreSQL (2 DB), Redis, Meilisearch. AI path: catalog RAG (Meili + vectors) → HMAC webhook → n8n **hoặc** local `chat-webhook` → DeepSeek (tools + stream).
 
 ```mermaid
 flowchart LR
@@ -16,10 +16,12 @@ flowchart LR
   API --> PG[(postgres catalog)]
   API --> Redis[(redis)]
   API --> Meili[(meilisearch)]
+  API --> Vectors[(VectorDocument / Pinecone)]
   Identity --> PGI[(postgres identity)]
   Identity --> Redis
   AI --> Redis
   AI --> JWKS[identity JWKS]
+  AI --> API
   API --> JWKS
   AI --> Hook[chat-webhook / n8n]
   Hook --> DeepSeek[DeepSeek API]
@@ -29,70 +31,104 @@ flowchart LR
 
 ```
 web → identity | api | ai
-api → postgres, redis, meilisearch, identity JWKS
+api → postgres, redis, meilisearch, identity JWKS, optional Pinecone/embedding API
 identity → postgres, redis
-ai → redis, identity JWKS, N8N_WEBHOOK_BASE_URL
+ai → redis, identity JWKS, N8N_WEBHOOK_BASE_URL, API_BASE_URL (RAG)
 ```
 
 - Không FE → DB trực tiếp.
 - Không circular service import (HTTP only).
-- Catalog userId trên booking **không** FK sang identity DB (cross-DB — by design).
+- Catalog `userId` trên booking **không** FK sang identity DB (cross-DB — by design).
 
 ## 3. Auth
 
 1. `POST /v1/auth/register|login` → access JWT (EdDSA) + opaque refresh  
-2. Web lưu `localStorage` (`web/src/lib/auth-storage.ts`)  
-3. 401 + Bearer → single-flight refresh (`web/src/lib/api.ts`)  
-4. api/ai verify JWT qua JWKS dual slot  
-5. Production: PEM bắt buộc (`identity/src/lib/keys.ts` fail-closed)
+2. Refresh set as **httpOnly cookie** on identity origin; access token **in-memory** on web (optional `sessionStorage` if `NEXT_PUBLIC_PERSIST_ACCESS=true`)  
+3. 401 + Bearer → single-flight cookie refresh (`web/src/lib/api.ts`, `credentials: include` on identity)  
+4. api/ai verify JWT via JWKS dual slot  
+5. Production: PEM fail-closed (`identity/src/lib/keys.ts`)
 
 Chi tiết: [ADR-0006](./adr/0006-ed25519-jwt-auth.md), [data-flows](./architecture/data-flows.md).
 
-## 4. Booking
+## 4. Booking & inventory
 
 ```
-create (pending_payment/draft) → mock pay → confirmed
-cancel if canTransition(from, cancelled)
+create (pending_payment) + Idempotency-Key
+  hotel → room type + rate plan (default STD/BAR) → night inventory check
+  flight/transport → seats check
+→ mock pay → confirmed → decrement inventory + email notify
+→ cancel → restore inventory when confirmed
 ```
 
-Payment **MOCK** — không có PSP webhook. Evidence: `api/src/lib/booking-state.ts`, `api/src/routes/bookings.ts`.
+- Payment **MOCK** — `PaymentAttempt` ledger, không PSP webhook  
+- Hotel PMS: `HotelRoomType`, `RatePlan`, `HotelNightInventory` (per room type when set)  
+Evidence: `api/src/routes/bookings.ts`, `api/src/lib/hotel-night-inventory.ts`, `api/src/lib/pms.ts`.
 
-## 5. Search
+## 5. Search & vectors
 
-- Write path: Postgres seed/CRUD read models  
-- Search path: Meilisearch indexes; filters sanitize `api/src/lib/meili-filter.ts`  
-- Admin reindex: `POST /v1/admin/reindex`  
-ADR: [0007](./adr/0007-meilisearch-catalog-search.md)
+| Path | Status |
+|------|--------|
+| Meilisearch keyword (`GET /v1/search`) | COMPLETE |
+| Admin Meili reindex | COMPLETE |
+| Embeddings + `VectorDocument` Postgres | COMPLETE path |
+| Pinecone upsert/query when keys set | COMPLETE path |
+| `GET /v1/search/vectors` | COMPLETE path |
+| Admin vector reindex | COMPLETE |
+
+ADR Meili: [0007](./adr/0007-meilisearch-catalog-search.md).
 
 ## 6. AI
 
 ```
-POST /v1/chat (JWT) → rate limit → HMAC webhook → DeepSeek | degraded template
+POST /v1/chat | /v1/chat/stream (JWT)
+  → Meili + vector catalog RAG (API)
+  → rate limit → HMAC webhook → DeepSeek tools | degraded template
+  → optional chat message persist (api chat-history)
 ```
 
-- **NOT IMPLEMENTED:** RAG, embeddings, tool-calling, chat message DB, streaming SSE  
-- Local: `docker-compose.local.yml` → `chat-webhook`  
-- Base: n8n container + JSON `infra/n8n/workflows/` (import thủ công — DISCONNECTED auto)  
-ADR: [0004](./adr/0004-ai-via-n8n.md)
+| Capability | Status |
+|------------|--------|
+| Live DeepSeek when key set | COMPLETE path |
+| Degraded fallback | COMPLETE |
+| Meili + vector RAG | COMPLETE path |
+| Read-only tool-calling | COMPLETE path |
+| SSE streaming | COMPLETE path |
+| Chat conversation/message DB | COMPLETE path |
 
-## 7. Observability
+Local: `docker-compose.local.yml` → `chat-webhook`.  
+Base: n8n + `infra/n8n/workflows/` (import thủ công — DISCONNECTED auto).  
+ADR: [0004](./adr/0004-ai-via-n8n.md).
+
+## 7. Notifications
+
+```
+pay success → notifyBookingConfirmed → Notification row → sendMail
+  SMTP (nodemailer) | HTTP gateway | log-only
+```
+
+Evidence: `api/src/lib/mailer.ts`, `api/src/lib/notify.ts`.
+
+## 8. Observability
 
 | Signal | Status |
 |--------|--------|
 | `/healthz` `/readyz` `/metrics` | COMPLETE per service |
 | `x-request-id` | COMPLETE identity/api/ai |
+| Optional `METRICS_TOKEN` | COMPLETE when set |
 | OTel / distributed tracing | NOT IMPLEMENTED |
 | Central log stack | NOT IMPLEMENTED in-repo |
 
-## 8. Keep / refactor / avoid
+## 9. Keep / refactor / avoid
 
 | Keep | Refactor candidates | Avoid |
 |------|---------------------|-------|
-| Service split + JWKS | Cookie BFF session | Merge to Next monolith API |
-| Compose overlays local/prod | Wire generated OpenAPI client runtime | Invent Kafka/K8s without need |
-| Degraded AI path | Drop unused MinIO from default | Fake production-ready claims |
+| Service split + JWKS | Wire generated OpenAPI client at runtime | Merge to Next monolith API |
+| Compose overlays local/prod | Full OTel stack when needed | Invent Kafka/K8s without need |
+| Degraded AI path | Real PSP when product decides | Fake “production payment ready” |
+| httpOnly refresh | Drop MinIO from default compose | Traveloka partner API invent |
 
-## 9. Related
+## 10. Related
 
 - [Services](./architecture/services.md)
-- [Scout](./reports/vietnam-travel-codebase-scout.md)
+- [Data flows](./architecture/data-flows.md)
+- [PDR](./project-overview-pdr.md)

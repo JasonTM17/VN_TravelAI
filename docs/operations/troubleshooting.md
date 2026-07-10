@@ -1,6 +1,6 @@
 # Troubleshooting
 
-**Last verified:** `e715b96`
+**Last verified:** `9f4d424`
 
 Mỗi mục: symptoms → causes → diagnostics → resolution → verification → avoid.
 
