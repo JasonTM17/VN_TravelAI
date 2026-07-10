@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { BookButton } from "@/components/book-button";
 import { WishlistButton } from "@/components/wishlist-button";
+import { ReviewForm } from "@/components/review-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
 import { ImageGallery } from "@/components/image-gallery";
@@ -75,6 +76,18 @@ export default async function TourDetailPage({
               <WishlistButton locale={locale} itemType="tour" itemId={tour.id} label={t.nav.wishlist} />
               <BookButton locale={locale} itemType="tour" itemId={tour.id} label={t.common.book} />
             </div>
+          </div>
+          <div className="mt-8 space-y-3">
+            <h2 className="font-semibold">{t.common.reviews}</h2>
+            <ReviewForm locale={locale} tourId={tour.id} />
+            {tour.reviews?.length
+              ? tour.reviews.map((r, i) => (
+                  <div key={i} className="rounded-xl border border-border bg-white p-3 text-sm">
+                    <div className="font-medium">{r.author} · {"★".repeat(r.rating)}</div>
+                    <p className="mt-1 text-muted">{r.body}</p>
+                  </div>
+                ))
+              : null}
           </div>
         </div>
       </div>

@@ -106,6 +106,14 @@ export const dict = {
       confirmed: "Đã xác nhận",
       empty: "Bạn chưa có booking nào.",
     },
+    review: {
+      write: "Viết đánh giá",
+      rating: "Điểm",
+      body: "Nội dung",
+      submit: "Gửi đánh giá",
+      thanks: "Cảm ơn bạn đã đánh giá!",
+      loginHint: "Đăng nhập để viết đánh giá.",
+    },
     common: {
       from: "Từ",
       night: "đêm",
@@ -267,6 +275,14 @@ export const dict = {
       pay: "Mock pay",
       confirmed: "Confirmed",
       empty: "No bookings yet.",
+    },
+    review: {
+      write: "Write a review",
+      rating: "Rating",
+      body: "Your review",
+      submit: "Submit review",
+      thanks: "Thanks for your review!",
+      loginHint: "Log in to write a review.",
     },
     common: {
       from: "From",

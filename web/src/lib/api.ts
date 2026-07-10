@@ -269,6 +269,19 @@ export const api = {
       method: "DELETE",
       headers: { authorization: `Bearer ${token}` },
     }),
+  createReview: (
+    token: string,
+    body: { hotelId?: string; tourId?: string; rating: number; body: string },
+  ) =>
+    request<ApiEnvelope<{ id: string; rating: number; body: string; author: string }>>(
+      API_URL,
+      "/v1/reviews",
+      {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      },
+    ),
   adminReindex: (token: string, adminToken?: string) =>
     request<ApiEnvelope<{ reindexed: boolean; by: string; role: string; counts: unknown }>>(
       API_URL,
@@ -333,6 +346,7 @@ export type Hotel = {
   images?: string[];
   amenities?: string[];
   rating?: number;
+  roomsLeft?: number;
   descriptionVi?: string;
   descriptionEn?: string;
   reviews?: Array<{ author: string; rating: number; body: string }>;
@@ -349,6 +363,7 @@ export type Tour = {
   images?: string[];
   descriptionVi?: string;
   descriptionEn?: string;
+  reviews?: Array<{ author: string; rating: number; body: string }>;
 };
 
 export type Flight = {
