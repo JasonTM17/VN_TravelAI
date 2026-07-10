@@ -3,7 +3,7 @@ import type { FastifyRequest, FastifyReply } from "fastify";
 import type { AppConfig } from "../config.js";
 import { sendProblem } from "./problem.js";
 
-export type AuthUser = { id: string; email?: string; name?: string };
+export type AuthUser = { id: string; email?: string; name?: string; role: string };
 
 export function createAuthGuard(config: AppConfig) {
   const jwks = createRemoteJWKSet(new URL(config.IDENTITY_JWKS_URL));
@@ -30,10 +30,25 @@ export function createAuthGuard(config: AppConfig) {
         id: payload.sub,
         email: typeof payload.email === "string" ? payload.email : undefined,
         name: typeof payload.name === "string" ? payload.name : undefined,
+        role: typeof payload.role === "string" ? payload.role : "user",
       };
     } catch {
       sendProblem(reply, 401, "Unauthorized", "Invalid token");
       return null;
     }
   };
+}
+
+export async function requireAdmin(
+  requireAuth: ReturnType<typeof createAuthGuard>,
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<AuthUser | null> {
+  const user = await requireAuth(req, reply);
+  if (!user) return null;
+  if (user.role !== "admin") {
+    sendProblem(reply, 403, "Forbidden", "Admin role required");
+    return null;
+  }
+  return user;
 }

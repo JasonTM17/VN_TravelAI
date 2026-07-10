@@ -1,11 +1,13 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import Redis from "ioredis";
 import { collectDefaultMetrics, Registry, Counter, Histogram } from "prom-client";
 import { loadConfig } from "./config.js";
 import { prisma } from "./db.js";
 import { createMeili, reindexAll } from "./lib/meili.js";
-import { createAuthGuard } from "./lib/auth.js";
+import { createAuthGuard, requireAdmin } from "./lib/auth.js";
+import { writeAdminAudit } from "./lib/audit.js";
 import { catalogRoutes } from "./routes/catalog.js";
 import { bookingRoutes } from "./routes/bookings.js";
 import { wishlistRoutes } from "./routes/wishlists.js";
@@ -17,7 +19,29 @@ async function main() {
 
   const origins = config.CORS_ORIGINS.split(",").map((s) => s.trim());
   await app.register(cors, { origin: origins, credentials: true });
-  await app.register(helmet, { contentSecurityPolicy: false });
+  // JSON API: default-src none; no frame; no unsafe-eval
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+      },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  });
+
+  const redis = new Redis(config.REDIS_URL, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+  });
+  try {
+    await redis.connect();
+  } catch {
+    app.log.warn("Redis unavailable — catalog rate limits degraded (fail-open)");
+  }
 
   const register = new Registry();
   collectDefaultMetrics({ register });
@@ -56,42 +80,44 @@ async function main() {
 
   const meili = createMeili(config);
   const requireAuth = createAuthGuard(config);
+  const redisOrNull = redis.status === "ready" ? redis : null;
 
-  await catalogRoutes(app, meili);
+  await catalogRoutes(app, meili, redisOrNull);
   await bookingRoutes(app, requireAuth);
   await wishlistRoutes(app, requireAuth);
   await itineraryRoutes(app, requireAuth);
 
-  // Admin reindex: require Bearer JWT (user) AND matching admin token header.
-  // Public reindex was an open DoS/abuse surface on Meilisearch.
+  // Admin reindex: JWT with role=admin; optional X-Admin-Token dual factor when set.
   app.post("/v1/admin/reindex", async (req, reply) => {
-    const user = await requireAuth(req, reply);
+    const user = await requireAdmin(requireAuth, req, reply);
     if (!user) return;
     const adminToken = process.env.ADMIN_REINDEX_TOKEN;
-    const provided = req.headers["x-admin-token"];
-    if (
-      !adminToken ||
-      typeof provided !== "string" ||
-      provided.length < 16 ||
-      provided !== adminToken
-    ) {
-      return reply.status(403).send({
-        type: "about:blank",
-        title: "Forbidden",
-        status: 403,
-        detail: "Admin reindex requires X-Admin-Token",
-      });
+    if (adminToken && adminToken.length >= 16) {
+      const provided = req.headers["x-admin-token"];
+      if (typeof provided !== "string" || provided !== adminToken) {
+        return reply.status(403).send({
+          type: "about:blank",
+          title: "Forbidden",
+          status: 403,
+          detail: "Admin reindex requires matching X-Admin-Token",
+        });
+      }
     }
     try {
-      await reindexAll(meili);
-      return { success: true, data: { reindexed: true, by: user.id } };
+      const counts = await reindexAll(meili);
+      await writeAdminAudit({
+        userId: user.id,
+        action: "meili.reindex",
+        detail: JSON.stringify(counts),
+        ip: req.ip,
+      });
+      return { success: true, data: { reindexed: true, by: user.id, role: user.role, counts } };
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ success: false, error: "reindex failed" });
     }
   });
 
-  // Best-effort reindex on boot (after seed may run externally)
   setTimeout(() => {
     reindexAll(meili).catch((err) => app.log.warn({ err }, "meili reindex skipped"));
   }, 5000);

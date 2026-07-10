@@ -1,14 +1,23 @@
 import type { FastifyInstance } from "fastify";
 import type { MeiliSearch } from "meilisearch";
+import type Redis from "ioredis";
 import { prisma } from "../db.js";
 import { sendProblem } from "../lib/problem.js";
+import { enforceRateLimit } from "../lib/rate-limit.js";
 
 function pageMeta(page: number, limit: number, total: number) {
   return { page, limit, total };
 }
 
-export async function catalogRoutes(app: FastifyInstance, meili: MeiliSearch) {
-  app.get("/v1/destinations", async (req) => {
+const CATALOG_RL = { prefix: "rl:catalog", limit: 120, windowSec: 60 };
+
+export async function catalogRoutes(
+  app: FastifyInstance,
+  meili: MeiliSearch,
+  redis: Redis | null = null,
+) {
+  app.get("/v1/destinations", async (req, reply) => {
+    if (!(await enforceRateLimit(redis, req, reply, CATALOG_RL))) return;
     const q = req.query as { country?: string; q?: string; page?: string; limit?: string };
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(50, Math.max(1, Number(q.limit ?? 20)));
@@ -44,7 +53,8 @@ export async function catalogRoutes(app: FastifyInstance, meili: MeiliSearch) {
     return { success: true, data: row };
   });
 
-  app.get("/v1/hotels", async (req) => {
+  app.get("/v1/hotels", async (req, reply) => {
+    if (!(await enforceRateLimit(redis, req, reply, CATALOG_RL))) return;
     const q = req.query as {
       destination?: string;
       q?: string;
@@ -119,7 +129,8 @@ export async function catalogRoutes(app: FastifyInstance, meili: MeiliSearch) {
     };
   });
 
-  app.get("/v1/tours", async (req) => {
+  app.get("/v1/tours", async (req, reply) => {
+    if (!(await enforceRateLimit(redis, req, reply, CATALOG_RL))) return;
     const q = req.query as { destination?: string; q?: string; page?: string; limit?: string };
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(50, Math.max(1, Number(q.limit ?? 20)));
@@ -299,6 +310,9 @@ export async function catalogRoutes(app: FastifyInstance, meili: MeiliSearch) {
   });
 
   app.get("/v1/search", async (req, reply) => {
+    if (!(await enforceRateLimit(redis, req, reply, { prefix: "rl:search", limit: 60, windowSec: 60 }))) {
+      return;
+    }
     const q = req.query as { q?: string };
     if (!q.q?.trim()) {
       return sendProblem(reply, 400, "Validation error", "q required");

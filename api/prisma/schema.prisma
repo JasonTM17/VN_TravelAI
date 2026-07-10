@@ -191,3 +191,16 @@ model Itinerary {
   @@index([userId])
   @@map("itineraries")
 }
+
+model AdminAuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id")
+  action    String
+  detail    String?  @db.Text
+  ip        String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
+}
