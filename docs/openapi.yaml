@@ -193,6 +193,36 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /v1/auth/change-password:
+    post:
+      tags: [auth]
+      summary: Change password for authenticated user
+      operationId: authChangePassword
+      servers:
+        - url: http://localhost:3002
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Password changed; refresh tokens revoked
+        "400":
+          description: Validation error
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /.well-known/jwks.json:
     get:
       tags: [auth]

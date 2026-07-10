@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../db.js";
@@ -6,12 +6,13 @@ import type { AppConfig } from "../config.js";
 import type { KeySlot } from "../lib/keys.js";
 import { hashToken, mintAccessToken, mintRefreshToken } from "../lib/tokens.js";
 import { sendProblem } from "../lib/problem.js";
+import { MAX_PASSWORD_LEN, MIN_PASSWORD_LEN, validatePasswordChange } from "../lib/password-policy.js";
 import type Redis from "ioredis";
 import { importJWK, jwtVerify } from "jose";
 
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8).max(128),
+  password: z.string().min(MIN_PASSWORD_LEN).max(MAX_PASSWORD_LEN),
   fullName: z.string().min(1).max(120),
 });
 
@@ -22,6 +23,11 @@ const loginSchema = z.object({
 
 const refreshSchema = z.object({
   refreshToken: z.string().min(10),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(MIN_PASSWORD_LEN).max(MAX_PASSWORD_LEN),
 });
 
 function publicUser(u: { id: string; email: string; fullName: string; role?: string; createdAt: Date }) {
@@ -199,10 +205,11 @@ export async function authRoutes(
     return reply.status(204).send();
   });
 
-  app.get("/v1/auth/me", async (req, reply) => {
+  async function requireUserFromBearer(req: FastifyRequest, reply: FastifyReply) {
     const header = req.headers.authorization;
     if (!header?.startsWith("Bearer ")) {
-      return sendProblem(reply, 401, "Unauthorized", "Missing bearer token");
+      sendProblem(reply, 401, "Unauthorized", "Missing bearer token");
+      return null;
     }
     const token = header.slice(7);
     try {
@@ -212,12 +219,60 @@ export async function authRoutes(
         audience: config.JWT_AUDIENCE,
       });
       const sub = payload.sub;
-      if (!sub) return sendProblem(reply, 401, "Unauthorized", "Invalid token subject");
+      if (!sub) {
+        sendProblem(reply, 401, "Unauthorized", "Invalid token subject");
+        return null;
+      }
       const user = await prisma.user.findUnique({ where: { id: sub } });
-      if (!user) return sendProblem(reply, 401, "Unauthorized", "User not found");
-      return { success: true, data: publicUser(user) };
+      if (!user) {
+        sendProblem(reply, 401, "Unauthorized", "User not found");
+        return null;
+      }
+      return user;
     } catch {
-      return sendProblem(reply, 401, "Unauthorized", "Invalid token");
+      sendProblem(reply, 401, "Unauthorized", "Invalid token");
+      return null;
     }
+  }
+
+  app.get("/v1/auth/me", async (req, reply) => {
+    const user = await requireUserFromBearer(req, reply);
+    if (!user) return;
+    return { success: true, data: publicUser(user) };
+  });
+
+  /**
+   * Change password for authenticated user.
+   * Verifies current password, hashes new one, revokes all refresh tokens.
+   */
+  app.post("/v1/auth/change-password", async (req, reply) => {
+    const user = await requireUserFromBearer(req, reply);
+    if (!user) return;
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return sendProblem(reply, 400, "Validation error", JSON.stringify(parsed.error.flatten()));
+    }
+    const policy = validatePasswordChange(parsed.data);
+    if (!policy.ok) {
+      return sendProblem(reply, 400, "Validation error", policy.reason);
+    }
+    const match = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+    if (!match) {
+      return sendProblem(reply, 401, "Unauthorized", "Current password is incorrect");
+    }
+    const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, failedLoginCount: 0, lockedUntil: null },
+    });
+    // Force re-login on other devices
+    await prisma.refreshToken.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return {
+      success: true,
+      data: { changed: true, user: publicUser(user) },
+    };
   });
 }

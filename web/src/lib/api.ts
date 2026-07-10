@@ -93,6 +93,12 @@ export const api = {
     request<ApiEnvelope<User>>(IDENTITY_URL, "/v1/auth/me", {
       headers: { authorization: `Bearer ${token}` },
     }),
+  changePassword: (token: string, currentPassword: string, newPassword: string) =>
+    request<ApiEnvelope<{ changed: boolean; user: User }>>(IDENTITY_URL, "/v1/auth/change-password", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
   listBookings: (token: string) =>
     request<ApiEnvelope<Booking[]>>(API_URL, "/v1/bookings", {
       headers: { authorization: `Bearer ${token}` },

@@ -73,6 +73,9 @@ export function Navbar({ locale }: { locale: Locale }) {
               <Link href={`/${locale}/bookings`} className={linkClass(`/${locale}/bookings`)}>
                 {t.nav.bookings}
               </Link>
+              <Link href={`/${locale}/account`} className={linkClass(`/${locale}/account`)}>
+                {t.auth.account}
+              </Link>
               {admin ? (
                 <Link href={`/${locale}/admin`} className={linkClass(`/${locale}/admin`)}>
                   {t.nav.admin}
@@ -169,6 +172,13 @@ export function Navbar({ locale }: { locale: Locale }) {
                   className="inline-flex min-h-11 items-center rounded-md px-2 text-sm"
                 >
                   {t.nav.bookings}
+                </Link>
+                <Link
+                  href={`/${locale}/account`}
+                  onClick={() => setOpen(false)}
+                  className="inline-flex min-h-11 items-center rounded-md px-2 text-sm"
+                >
+                  {t.auth.account}
                 </Link>
                 {admin ? (
                   <Link
