@@ -49,7 +49,7 @@ export function Navbar({ locale }: { locale: Locale }) {
           >
             {t.brand}
           </Link>
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-1 lg:flex" aria-label={t.common.primaryNav}>
             {links.map((l) => (
               <Link key={l.href} href={l.href} className={linkClass(l.href)}>
                 {l.label}
@@ -115,7 +115,7 @@ export function Navbar({ locale }: { locale: Locale }) {
         <button
           type="button"
           className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-white/10 md:hidden"
-          aria-label="Menu"
+          aria-label={t.common.menu}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
         >

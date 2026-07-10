@@ -11,13 +11,11 @@ export function Footer({ locale }: { locale: Locale }) {
           <div className="text-xl font-black italic tracking-tight">{t.brand}</div>
           <p className="mt-2 max-w-sm text-sm text-white/70">{t.tagline}</p>
           <p className="mt-3 text-xs text-white/45">
-            © {new Date().getFullYear()} {t.brand}. Traveloka DNA · Stitch WanderViet
+            © {new Date().getFullYear()} {t.brand}. {t.footer.credit}
           </p>
         </div>
         <div className="text-sm text-white/75">
-          <div className="font-semibold text-white">
-            {locale === "en" ? "About" : "Về TravelAI"}
-          </div>
+          <div className="font-semibold text-white">{t.footer.about}</div>
           <div className="mt-2 flex flex-col gap-1.5">
             <Link href={`/${locale}/explore`} className="hover:text-white">
               {t.nav.explore}
@@ -34,18 +32,19 @@ export function Footer({ locale }: { locale: Locale }) {
           </div>
         </div>
         <div className="text-sm text-white/75">
-          <div className="font-semibold text-white">
-            {locale === "en" ? "Support" : "Hỗ trợ"}
-          </div>
+          <div className="font-semibold text-white">{t.footer.support}</div>
           <div className="mt-2 flex flex-col gap-1.5">
             <Link href={`/${locale}/bookings`} className="hover:text-white">
-              {locale === "en" ? "Booking guide" : "Hướng dẫn đặt chỗ"}
+              {t.footer.bookingGuide}
             </Link>
             <Link href={`/${locale}/wishlist`} className="hover:text-white">
               {t.nav.wishlist}
             </Link>
-            <span>{locale === "en" ? "Privacy policy" : "Chính sách bảo mật"}</span>
-            <span>{locale === "en" ? "Terms of use" : "Điều khoản sử dụng"}</span>
+            <Link href={`/${locale}/account`} className="hover:text-white">
+              {t.auth.account}
+            </Link>
+            <span>{t.footer.privacy}</span>
+            <span>{t.footer.terms}</span>
           </div>
         </div>
       </div>
