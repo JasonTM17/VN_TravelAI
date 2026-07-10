@@ -77,6 +77,9 @@ const groups = [
     required: DEST_SLUGS.map((s) => `${s}.jpg`),
   }),
   auditDir("categories"),
+  auditDir("promo", {
+    required: ["01-ha-long.jpg", "02-hoi-an.jpg", "03-da-nang.jpg", "04-sapa.jpg"],
+  }),
 ];
 
 // Cross-group: destination heroes must not share hash with hotel primary of same visual dump

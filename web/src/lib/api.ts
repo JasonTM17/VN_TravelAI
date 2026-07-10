@@ -133,6 +133,32 @@ export const api = {
       method: "DELETE",
       headers: { authorization: `Bearer ${token}` },
     }),
+  adminReindex: (token: string, adminToken?: string) =>
+    request<ApiEnvelope<{ reindexed: boolean; by: string; role: string; counts: unknown }>>(
+      API_URL,
+      "/v1/admin/reindex",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          ...(adminToken ? { "x-admin-token": adminToken } : {}),
+        },
+        body: JSON.stringify({}),
+      },
+    ),
+  adminAudit: (token: string, limit = 20) =>
+    request<ApiEnvelope<AdminAuditRow[]>>(API_URL, `/v1/admin/audit?limit=${limit}`, {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+};
+
+export type AdminAuditRow = {
+  id: string;
+  userId: string;
+  action: string;
+  detail?: string | null;
+  ip?: string | null;
+  createdAt: string;
 };
 
 export type Destination = {

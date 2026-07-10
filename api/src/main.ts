@@ -118,6 +118,18 @@ async function main() {
     }
   });
 
+  app.get("/v1/admin/audit", async (req, reply) => {
+    const user = await requireAdmin(requireAuth, req, reply);
+    if (!user) return;
+    const q = req.query as { limit?: string };
+    const limit = Math.min(Math.max(Number(q.limit ?? 20) || 20, 1), 100);
+    const rows = await prisma.adminAuditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+    return { success: true, data: rows };
+  });
+
   setTimeout(() => {
     reindexAll(meili).catch((err) => app.log.warn({ err }, "meili reindex skipped"));
   }, 5000);

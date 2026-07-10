@@ -1,10 +1,10 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { BookButton } from "@/components/book-button";
 import { WishlistButton } from "@/components/wishlist-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
+import { ImageGallery } from "@/components/image-gallery";
 import { api } from "@/lib/api";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
 
@@ -42,7 +42,6 @@ export default async function TourDetailPage({
   }
   const title = locale === "en" ? tour.titleEn : tour.titleVi;
   const desc = locale === "en" ? tour.descriptionEn : tour.descriptionVi;
-  const img = tour.images?.[0] ?? "/images/categories/tours.jpg";
 
   return (
     <div data-testid="content-ready">
@@ -54,9 +53,12 @@ export default async function TourDetailPage({
         ]}
       />
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-border">
-          <Image src={img} alt={title} fill className="object-cover" />
-        </div>
+        <ImageGallery
+          images={tour.images}
+          alt={title}
+          fallback="/images/categories/tours.jpg"
+          priority
+        />
         <div className="animate-fade-in-up">
           <h1 className="text-3xl font-bold">
             <span className="gradient-text">{title}</span>

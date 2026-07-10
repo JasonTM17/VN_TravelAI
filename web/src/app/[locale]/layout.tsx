@@ -16,9 +16,9 @@ export default async function LocaleLayout({
   const locale = raw as Locale;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f5f5f5]">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#f5f5f5]">
       <Navbar locale={locale} />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 md:px-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-4 py-8 md:px-8">{children}</main>
       <Footer locale={locale} />
       <ChatbotWidget locale={locale} />
     </div>

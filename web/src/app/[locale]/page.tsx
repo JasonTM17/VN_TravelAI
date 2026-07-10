@@ -10,9 +10,11 @@ import {
   Ticket,
 } from "lucide-react";
 import { DestinationCard } from "@/components/destination-card";
+import { PromoCarousel } from "@/components/promo-carousel";
 import { SearchHero } from "@/components/search-hero";
 import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
+import { buildHomePromoSlides } from "@/lib/gallery-slides";
 import { formatVnd } from "@/lib/utils";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
 
@@ -76,22 +78,7 @@ export default async function HomePage({
     { href: `/${locale}/ai`, label: t.nav.ai, icon: Sparkles, tone: "bg-[#e0f2fe] text-[#0284c7]" },
   ];
 
-  const promos = [
-    {
-      title: locale === "en" ? "Ha Long premium cruise" : "Du thuyền Hạ Long đẳng cấp",
-      img: "/images/destinations/ha-long.jpg",
-      href: `/${locale}/destinations/ha-long`,
-      badge: locale === "en" ? "Up to 30% off" : "Giảm đến 30%",
-      badgeTone: "error" as const,
-    },
-    {
-      title: locale === "en" ? "Hoi An lantern nights" : "Hội An — Mùa lồng đèn lung linh",
-      img: "/images/destinations/hoi-an.jpg",
-      href: `/${locale}/destinations/hoi-an`,
-      badge: locale === "en" ? "Hotel + flight combo" : "Combo khách sạn + vé",
-      badgeTone: "cta" as const,
-    },
-  ];
+  const promos = buildHomePromoSlides(locale, `/${locale}`);
 
   return (
     <div data-testid="content-ready" className="-mt-8">
@@ -139,37 +126,13 @@ export default async function HomePage({
               {t.home.viewAll}
             </Link>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible">
-            {promos.map((p) => (
-              <Link
-                key={p.href}
-                href={p.href}
-                className="card-hover group relative h-48 min-w-[280px] flex-1 overflow-hidden rounded-xl shadow-md md:min-w-0"
-              >
-                <Image
-                  src={p.img}
-                  alt={p.title}
-                  fill
-                  className="object-cover transition duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span
-                    className={
-                      p.badgeTone === "error"
-                        ? "mb-2 inline-block rounded bg-red-600 px-2 py-0.5 text-xs font-bold text-white"
-                        : "mb-2 inline-block rounded bg-[#ff6d00] px-2 py-0.5 text-xs font-bold text-white"
-                    }
-                  >
-                    {p.badge}
-                  </span>
-                  <div className="text-lg font-bold leading-tight text-white">{p.title}</div>
-                </div>
-              </Link>
-            ))}
+          <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
+            <div className="min-w-0 flex-1">
+              <PromoCarousel slides={promos} />
+            </div>
             <Link
               href={`/${locale}/ai`}
-              className="card-hover flex h-48 min-w-[280px] flex-1 flex-col justify-between rounded-xl bg-[#0064d2] p-5 text-white shadow-md md:min-w-0"
+              className="card-hover flex h-48 w-full flex-col justify-between rounded-xl bg-[#0064d2] p-5 text-white shadow-md md:w-64 md:shrink-0"
             >
               <div>
                 <Sparkles className="h-6 w-6" />
