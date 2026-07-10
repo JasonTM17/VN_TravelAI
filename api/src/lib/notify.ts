@@ -1,6 +1,16 @@
 import { prisma } from "../db.js";
 import { sendMail } from "./mailer.js";
 
+function bookingConfirmedHtml(bookingId: string, totalVnd: number): string {
+  const total = totalVnd.toLocaleString("vi-VN");
+  return `<!doctype html><html><body style="font-family:system-ui,sans-serif;color:#0f172a">
+  <h2 style="color:#0ea5e9">TravelAI — Booking confirmed</h2>
+  <p>Your booking <strong>${bookingId}</strong> is confirmed.</p>
+  <p>Total: <strong>${total} VND</strong> (mock pay).</p>
+  <p style="color:#64748b;font-size:12px">This is an automated message from TravelAI.</p>
+</body></html>`;
+}
+
 export async function notifyBookingConfirmed(opts: {
   userId: string;
   email?: string;
@@ -25,12 +35,22 @@ export async function notifyBookingConfirmed(opts: {
   });
 
   if (emailTo) {
-    const sent = await sendMail({ to: emailTo, subject: title, text: body });
+    const sent = await sendMail({
+      to: emailTo,
+      subject: title,
+      text: body,
+      html: bookingConfirmedHtml(opts.bookingId, opts.totalVnd),
+    });
     await prisma.notification.update({
       where: { id: row.id },
       data: {
         status: sent.ok ? (sent.mode === "log" ? "logged" : "sent") : "failed",
         sentAt: sent.ok ? new Date() : null,
+        meta: {
+          bookingId: opts.bookingId,
+          mailMode: sent.ok ? sent.mode : undefined,
+          mailError: sent.ok ? undefined : sent.error,
+        },
       },
     });
   } else {
