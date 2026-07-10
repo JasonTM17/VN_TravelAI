@@ -59,7 +59,15 @@ export async function authRoutes(
   const { config, primary, secondary, redis } = deps;
   const jwks = createLocalJWKSet(toJwks(primary, secondary) as unknown as JSONWebKeySet);
   const cookieSecure = config.NODE_ENV === "production";
-  const cookieSameSite = cookieSecure ? ("None" as const) : ("Lax" as const);
+  const cookieSameSite =
+    config.COOKIE_SAMESITE === "Lax" ||
+    config.COOKIE_SAMESITE === "None" ||
+    config.COOKIE_SAMESITE === "Strict"
+      ? config.COOKIE_SAMESITE
+      : cookieSecure
+        ? ("None" as const)
+        : ("Lax" as const);
+  const cookieDomain = config.COOKIE_DOMAIN?.trim() || undefined;
 
   function setRefreshCookie(reply: FastifyReply, refreshRaw: string) {
     reply.header(
@@ -68,6 +76,7 @@ export async function authRoutes(
         maxAgeSec: config.REFRESH_TOKEN_TTL_SEC,
         secure: cookieSecure,
         sameSite: cookieSameSite,
+        domain: cookieDomain,
       }),
     );
   }
@@ -75,7 +84,11 @@ export async function authRoutes(
   function clearRefreshCookie(reply: FastifyReply) {
     reply.header(
       "set-cookie",
-      buildRefreshClearCookie({ secure: cookieSecure, sameSite: cookieSameSite }),
+      buildRefreshClearCookie({
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
+        domain: cookieDomain,
+      }),
     );
   }
 

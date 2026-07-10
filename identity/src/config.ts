@@ -24,6 +24,13 @@ const envSchema = z.object({
   CORS_ORIGINS: z
     .string()
     .default("http://localhost:3000,http://127.0.0.1:3000,http://localhost:53000,http://127.0.0.1:53000"),
+  /**
+   * Optional cookie Domain for refresh token (e.g. `.travelai.example`).
+   * Leave empty for host-only (default local / single-host).
+   */
+  COOKIE_DOMAIN: z.string().optional().default(""),
+  /** Override SameSite: Lax | None | Strict. Empty = auto (None in production, Lax otherwise). */
+  COOKIE_SAMESITE: z.enum(["", "Lax", "None", "Strict"]).optional().default(""),
   LOG_LEVEL: z.string().default("info"),
 });
 

@@ -9,6 +9,11 @@ export type RefreshCookieOptions = {
   /** Lax (default same-site) or None (cross-site HTTPS). */
   sameSite?: "Lax" | "None" | "Strict";
   path?: string;
+  /**
+   * Optional Domain attribute (e.g. `.example.com`) for multi-subdomain refresh.
+   * Empty/undefined = host-only cookie (local ports / single host).
+   */
+  domain?: string;
 };
 
 /** Build Set-Cookie value for opaque refresh token. */
@@ -22,6 +27,13 @@ export function buildRefreshSetCookie(token: string, opts: RefreshCookieOptions)
     "HttpOnly",
     `SameSite=${sameSite}`,
   ];
+  const domain = opts.domain?.trim();
+  if (domain) {
+    // Reject values that look like injection / invalid cookie domain tokens
+    if (/^(\.?[a-z0-9]([a-z0-9-]*[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(domain) || domain === "localhost") {
+      parts.push(`Domain=${domain}`);
+    }
+  }
   if (opts.secure || sameSite === "None") {
     parts.push("Secure");
   }
@@ -29,12 +41,15 @@ export function buildRefreshSetCookie(token: string, opts: RefreshCookieOptions)
 }
 
 /** Clear cookie (Max-Age=0). */
-export function buildRefreshClearCookie(opts: Pick<RefreshCookieOptions, "secure" | "sameSite" | "path"> = {}): string {
+export function buildRefreshClearCookie(
+  opts: Pick<RefreshCookieOptions, "secure" | "sameSite" | "path" | "domain"> = {},
+): string {
   return buildRefreshSetCookie("", {
     maxAgeSec: 0,
     secure: opts.secure ?? false,
     sameSite: opts.sameSite ?? "Lax",
     path: opts.path ?? "/",
+    domain: opts.domain,
   });
 }
 

@@ -48,4 +48,23 @@ describe("refresh-cookie", () => {
     expect(c).toContain("Max-Age=0");
     expect(c).toContain("HttpOnly");
   });
+
+  it("includes Domain when valid multi-host domain provided", () => {
+    const c = buildRefreshSetCookie("tok", {
+      maxAgeSec: 60,
+      secure: true,
+      sameSite: "None",
+      domain: ".example.com",
+    });
+    expect(c).toContain("Domain=.example.com");
+  });
+
+  it("skips invalid Domain values", () => {
+    const c = buildRefreshSetCookie("tok", {
+      maxAgeSec: 60,
+      secure: false,
+      domain: "evil; Drop=1",
+    });
+    expect(c).not.toContain("Domain=");
+  });
 });
