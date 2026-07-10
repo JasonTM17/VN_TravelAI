@@ -32,7 +32,9 @@
 | `E2E_ENABLED` repo variable | PARTIAL | set via `gh` when permitted; workflow still gated |
 | Image Hub/GHCR rebuild | PARTIAL | trigger `docker-publish` when secrets/billing OK |
 | Real PSP | NOT IMPLEMENTED | product decision required |
-| RAG / streaming / hotel calendar | NOT IMPLEMENTED | non-goal / YAGNI |
+| User reviews write | COMPLETE path | POST /v1/reviews + FE form |
+| Hotel soft rooms inventory | COMPLETE path | roomsLeft decrement on pay |
+| RAG / streaming / full PMS calendar | NOT IMPLEMENTED | non-goal / YAGNI |
 
 ## 4. Explicit non-goals
 

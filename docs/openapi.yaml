@@ -506,6 +506,41 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /v1/reviews:
+    post:
+      tags: [bookings]
+      summary: Create a hotel or tour review (authenticated)
+      operationId: createReview
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating, body]
+              properties:
+                hotelId:
+                  type: string
+                  format: uuid
+                tourId:
+                  type: string
+                  format: uuid
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                body:
+                  type: string
+      responses:
+        "201":
+          description: Created
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Duplicate review
+
   /v1/bookings:
     get:
       tags: [bookings]
