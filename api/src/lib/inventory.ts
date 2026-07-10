@@ -3,10 +3,15 @@
  * Hotel/tour stay unconstrained (no room calendar — YAGNI).
  */
 
-export type SeatInventoryItemType = "transport" | "flight";
+export type SeatInventoryItemType = "transport" | "flight" | "hotel";
 
 export function isSeatInventoryType(itemType: string): itemType is SeatInventoryItemType {
-  return itemType === "transport" || itemType === "flight";
+  return itemType === "transport" || itemType === "flight" || itemType === "hotel";
+}
+
+/** Hotel uses roomsLeft; flight/transport use seatsLeft — same reserve semantics. */
+export function canReserveRooms(roomsLeft: number, units: number): boolean {
+  return canReserveSeats(roomsLeft, units);
 }
 
 /** Whether guests can be reserved against remaining seats. */

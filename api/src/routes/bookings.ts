@@ -4,7 +4,12 @@ import { prisma } from "../db.js";
 import { sendProblem } from "../lib/problem.js";
 import type { createAuthGuard } from "../lib/auth.js";
 import { applyPayment, canTransition, type BookingStatus } from "../lib/booking-state.js";
-import { canReserveSeats, isSeatInventoryType, seatsUpdateFilter } from "../lib/inventory.js";
+import {
+  canReserveRooms,
+  canReserveSeats,
+  isSeatInventoryType,
+  seatsUpdateFilter,
+} from "../lib/inventory.js";
 
 const createSchema = z.object({
   itemType: z.enum(["hotel", "tour", "flight", "transport"]),
@@ -56,6 +61,10 @@ export async function bookingRoutes(
     if (itemType === "hotel") {
       const hotel = await prisma.hotel.findUnique({ where: { id: itemId } });
       if (!hotel) return sendProblem(reply, 404, "Not found", "Hotel not found");
+      // Soft inventory: 1 room unit per booking (not full PMS calendar)
+      if (!canReserveRooms(hotel.roomsLeft, 1)) {
+        return sendProblem(reply, 409, "Conflict", "No rooms left for this hotel");
+      }
       const nights =
         endDate && endDate > startDate
           ? Math.max(
@@ -66,7 +75,13 @@ export async function bookingRoutes(
             )
           : 1;
       totalVnd = hotel.priceFromVnd * nights * guests;
-      itemSnapshot = { type: "hotel", slug: hotel.slug, name: hotel.name, nights };
+      itemSnapshot = {
+        type: "hotel",
+        slug: hotel.slug,
+        name: hotel.name,
+        nights,
+        roomsLeft: hotel.roomsLeft,
+      };
     } else if (itemType === "tour") {
       const tour = await prisma.tour.findUnique({ where: { id: itemId } });
       if (!tour) return sendProblem(reply, 404, "Not found", "Tour not found");
@@ -181,6 +196,14 @@ export async function bookingRoutes(
             if (r.count === 0) {
               throw new Error("INVENTORY");
             }
+          } else if (booking.itemType === "hotel") {
+            const r = await tx.hotel.updateMany({
+              where: { id: booking.itemId, roomsLeft: { gte: 1 } },
+              data: { roomsLeft: { decrement: 1 } },
+            });
+            if (r.count === 0) {
+              throw new Error("INVENTORY");
+            }
           }
         }
 
@@ -228,6 +251,11 @@ export async function bookingRoutes(
           await tx.transport.updateMany({
             where: { id: booking.itemId },
             data: { seatsLeft: { increment: booking.guests } },
+          });
+        } else if (booking.itemType === "hotel") {
+          await tx.hotel.updateMany({
+            where: { id: booking.itemId },
+            data: { roomsLeft: { increment: 1 } },
           });
         }
       }

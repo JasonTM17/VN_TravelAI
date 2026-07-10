@@ -40,6 +40,8 @@ model Hotel {
   images          String[]
   amenities       String[]
   rating          Float    @default(4.5)
+  /// Soft room inventory for mock booking (not a full PMS calendar).
+  roomsLeft       Int      @default(20) @map("rooms_left")
   createdAt       DateTime @default(now()) @map("created_at")
   destination     Destination @relation(fields: [destinationId], references: [id])
   reviews         Review[]
@@ -124,6 +126,10 @@ model Review {
   hotel     Hotel?   @relation(fields: [hotelId], references: [id])
   tour      Tour?    @relation(fields: [tourId], references: [id])
 
+  @@index([hotelId])
+  @@index([tourId])
+  @@index([userId])
+  // Uniqueness user+hotel / user+tour enforced in app + partial SQL indexes (NULLs for seed)
   @@map("reviews")
 }
 

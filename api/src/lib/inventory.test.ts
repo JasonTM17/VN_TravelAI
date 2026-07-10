@@ -9,10 +9,10 @@ describe("inventory", () => {
     expect(canReserveSeats(5, 0)).toBe(false);
   });
 
-  it("isSeatInventoryType only transport and flight", () => {
+  it("isSeatInventoryType covers transport, flight, hotel", () => {
     expect(isSeatInventoryType("transport")).toBe(true);
     expect(isSeatInventoryType("flight")).toBe(true);
-    expect(isSeatInventoryType("hotel")).toBe(false);
+    expect(isSeatInventoryType("hotel")).toBe(true);
     expect(isSeatInventoryType("tour")).toBe(false);
   });
 
