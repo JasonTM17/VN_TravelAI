@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Star } from "lucide-react";
@@ -7,6 +8,17 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
 import { formatVnd } from "@/lib/utils";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const locale = (isLocale(raw) ? raw : "vi") as Locale;
+  const t = getDict(locale);
+  return { title: t.nav.tours, description: t.meta.description };
+}
 
 export default async function ToursPage({
   params,

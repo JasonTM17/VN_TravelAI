@@ -1,32 +1,68 @@
-# Production overlay — pull public images instead of local build.
+# Production overlay — pull public images; harden data plane.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Required secrets (env): IDENTITY_JWT_PRIMARY_PRIVATE_KEY, strong DB passwords,
+# MEILI_MASTER_KEY, N8N_HMAC_SECRET. Set SEED_DEMO_USER=false RUN_SEED=false.
 
 services:
   identity:
     image: nguyenson1710/travelai-identity:${IMAGE_TAG:-latest}
     build: !reset null
     restart: always
+    environment:
+      NODE_ENV: production
+      SEED_DEMO_USER: "false"
+      JWT_REQUIRE_PEM: "true"
 
   api:
     image: nguyenson1710/travelai-api:${IMAGE_TAG:-latest}
     build: !reset null
     restart: always
+    environment:
+      NODE_ENV: production
+      RUN_SEED: "false"
 
   ai:
     image: nguyenson1710/travelai-ai:${IMAGE_TAG:-latest}
     build: !reset null
     restart: always
+    environment:
+      NODE_ENV: production
 
   web:
     image: nguyenson1710/travelai-web:${IMAGE_TAG:-latest}
     build: !reset null
     restart: always
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3000/healthz',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
 
   n8n:
     restart: always
 
+  # Do not publish DB/cache/search on host in production — internal network only
   postgres:
     restart: always
+    ports: !reset []
 
   redis:
     restart: always
+    ports: !reset []
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-change_me_redis}
+
+  meilisearch:
+    restart: always
+    ports: !reset []
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+
+  # MinIO optional — disable by default in prod profile (unused by app code)
+  minio:
+    profiles: ["storage"]
+    ports: !reset []

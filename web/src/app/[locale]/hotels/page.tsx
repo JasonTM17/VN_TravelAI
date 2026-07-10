@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -6,6 +7,17 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PriceTag } from "@/components/ui/price-tag";
 import { api } from "@/lib/api";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const locale = (isLocale(raw) ? raw : "vi") as Locale;
+  const t = getDict(locale);
+  return { title: t.nav.hotels, description: t.meta.description };
+}
 
 export default async function HotelsPage({
   params,

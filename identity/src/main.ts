@@ -36,6 +36,15 @@ async function main() {
     },
   });
 
+  app.addHook("onRequest", async (req, reply) => {
+    const incoming = req.headers["x-request-id"];
+    const requestId =
+      typeof incoming === "string" && incoming.length > 0
+        ? incoming
+        : `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    reply.header("x-request-id", requestId);
+  });
+
   const origins = config.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
   await app.register(cors, { origin: origins, credentials: true });
   await app.register(helmet, {

@@ -37,6 +37,15 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
   }, [open]);
 
   useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, open]);
 
@@ -78,6 +87,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
       {open ? (
         <div
           role="dialog"
+          aria-modal="true"
           aria-label={t.chatbot.title}
           aria-expanded={open}
           className="pointer-events-auto flex h-[min(520px,70vh)] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-float"

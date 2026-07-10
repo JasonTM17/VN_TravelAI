@@ -17,6 +17,16 @@ async function main() {
   const config = loadConfig();
   const app = Fastify({ logger: { level: config.LOG_LEVEL } });
 
+  app.addHook("onRequest", async (req, reply) => {
+    const incoming = req.headers["x-request-id"];
+    const requestId =
+      typeof incoming === "string" && incoming.length > 0
+        ? incoming
+        : `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    (req as { requestId?: string }).requestId = requestId;
+    reply.header("x-request-id", requestId);
+  });
+
   const origins = config.CORS_ORIGINS.split(",").map((s) => s.trim());
   await app.register(cors, { origin: origins, credentials: true });
   // JSON API: default-src none; no frame; no unsafe-eval

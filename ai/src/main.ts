@@ -31,6 +31,26 @@ const itineraries = new Map<string, Record<string, unknown>>();
 async function main() {
   const config = loadConfig();
   const app = Fastify({ logger: { level: config.LOG_LEVEL } });
+  // Preserve raw JSON string for HMAC verification (must match signer bytes)
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
+    try {
+      const raw = typeof body === "string" ? body : String(body ?? "");
+      (req as { rawBody?: string }).rawBody = raw;
+      const json = raw ? JSON.parse(raw) : {};
+      done(null, json);
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
+  app.addHook("onRequest", async (req, reply) => {
+    const incoming = req.headers["x-request-id"];
+    const requestId =
+      typeof incoming === "string" && incoming.length > 0
+        ? incoming
+        : `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    reply.header("x-request-id", requestId);
+  });
+
   const origins = config.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
   await app.register(cors, { origin: origins, credentials: true });
   await app.register(helmet, {
@@ -78,7 +98,9 @@ async function main() {
 
   // Inbound signed webhook probe (n8n → ai or partner) — rejects invalid HMAC with 401
   app.post("/v1/hooks/n8n-callback", async (req, reply) => {
-    const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {});
+    const raw =
+      (req as { rawBody?: string }).rawBody ??
+      (typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {}));
     const sig = (req.headers["x-signature-sha256"] as string | undefined) ?? "";
     if (!requireHmac(config.N8N_HMAC_SECRET, raw, sig, reply)) return;
     return { success: true, data: { accepted: true } };
