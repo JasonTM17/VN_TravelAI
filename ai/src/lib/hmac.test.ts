@@ -35,7 +35,8 @@ describe("hmac signing/verification (shipped module)", () => {
         return this;
       },
     };
-    const ok = requireHmac("secret", "{}", "deadbeef", reply);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ok = requireHmac("secret", "{}", "deadbeef", reply as any);
     expect(ok).toBe(false);
     expect(reply.statusCode).toBe(401);
     expect((reply.body as { detail: string }).detail).toMatch(/Invalid HMAC/i);
@@ -57,7 +58,9 @@ describe("hmac signing/verification (shipped module)", () => {
         return this;
       },
     };
-    expect(requireHmac("secret", body, sig, reply)).toBe(true);
+    // Minimal FastifyReply mock for unit isolation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(requireHmac("secret", body, sig, reply as any)).toBe(true);
     expect(reply.statusCode).toBe(200);
   });
 });

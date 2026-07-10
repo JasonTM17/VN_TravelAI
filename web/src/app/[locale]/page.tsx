@@ -32,7 +32,7 @@ export default async function HomePage({
   let hotels: Awaited<ReturnType<typeof api.listHotels>>["data"] = [];
   let promos: ReturnType<typeof mapPromosToSlides> = [];
   let catalogError = false;
-  let catalogMeta = { destinations: 0, hotels: 0, tours: 0 };
+  const catalogMeta = { destinations: 0, hotels: 0, tours: 0 };
 
   // allSettled: one failing resource must not blank the whole homepage
   const [dRes, tourRes, hotelRes, promoRes] = await Promise.allSettled([

@@ -24,8 +24,9 @@ function legacyLocal(): Storage | null {
   }
 }
 
-/** Persist access token (sessionStorage). Optional refreshToken arg ignored (cookie path). */
-export function saveSession(accessToken: string, _refreshToken?: string) {
+/** Persist access token (sessionStorage). Second arg ignored (refresh is httpOnly cookie). */
+export function saveSession(accessToken: string, refreshToken?: string) {
+  void refreshToken;
   const ss = accessStore();
   if (!ss) return;
   ss.setItem(ACCESS, accessToken);

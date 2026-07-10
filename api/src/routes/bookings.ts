@@ -150,7 +150,8 @@ export async function bookingRoutes(
         data: { bookingId: booking.id, outcome: "fail" },
       });
       const decision = applyPayment(booking.status, "fail");
-      return sendProblem(reply, 402, "Payment failed", decision.reason || "Mock payment declined");
+      const detail = decision.ok ? "Mock payment declined" : decision.reason;
+      return sendProblem(reply, 402, "Payment failed", detail);
     }
 
     const decision = applyPayment(booking.status, "success");

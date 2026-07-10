@@ -41,15 +41,18 @@ export function buildRefreshSetCookie(token: string, opts: RefreshCookieOptions)
 }
 
 /** Clear cookie (Max-Age=0). */
-export function buildRefreshClearCookie(
-  opts: Pick<RefreshCookieOptions, "secure" | "sameSite" | "path" | "domain"> = {},
-): string {
+export function buildRefreshClearCookie(opts?: {
+  secure?: boolean;
+  sameSite?: "Lax" | "None" | "Strict";
+  path?: string;
+  domain?: string;
+}): string {
   return buildRefreshSetCookie("", {
     maxAgeSec: 0,
-    secure: opts.secure ?? false,
-    sameSite: opts.sameSite ?? "Lax",
-    path: opts.path ?? "/",
-    domain: opts.domain,
+    secure: opts?.secure ?? false,
+    sameSite: opts?.sameSite ?? "Lax",
+    path: opts?.path ?? "/",
+    domain: opts?.domain,
   });
 }
 

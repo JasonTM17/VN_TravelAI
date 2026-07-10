@@ -134,7 +134,6 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
           role="dialog"
           aria-modal="true"
           aria-label={t.chatbot.title}
-          aria-expanded={open}
           className="pointer-events-auto flex h-[min(520px,70vh)] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-float"
         >
           <header className="flex items-center justify-between bg-[#0064d2] px-4 py-3 text-white">
