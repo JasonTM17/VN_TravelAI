@@ -31,6 +31,16 @@ const envSchema = z.object({
   COOKIE_DOMAIN: z.string().optional().default(""),
   /** Override SameSite: Lax | None | Strict. Empty = auto (None in production, Lax otherwise). */
   COOKIE_SAMESITE: z.enum(["", "Lax", "None", "Strict"]).optional().default(""),
+  /**
+   * When true, login/register/refresh JSON still includes refreshToken (legacy clients).
+   * Default false — refresh is httpOnly cookie only.
+   */
+  ALLOW_BODY_REFRESH: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
+  /** When set, GET /metrics requires Authorization: Bearer or X-Metrics-Token. Empty = open (local). */
+  METRICS_TOKEN: z.string().optional().default(""),
   LOG_LEVEL: z.string().default("info"),
 });
 

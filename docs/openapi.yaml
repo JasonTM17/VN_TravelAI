@@ -1091,6 +1091,7 @@ components:
               type: string
             refreshToken:
               type: string
+              description: Omitted by default; present only when ALLOW_BODY_REFRESH=true. Prefer httpOnly cookie.
             expiresIn:
               type: integer
             user:

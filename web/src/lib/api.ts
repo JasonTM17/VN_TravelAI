@@ -382,7 +382,8 @@ export type Transport = {
 export type User = { id: string; email: string; fullName: string };
 export type AuthData = {
   accessToken: string;
-  refreshToken: string;
+  /** Omitted when identity uses cookie-only refresh. */
+  refreshToken?: string;
   expiresIn: number;
   user: User;
 };

@@ -15,6 +15,7 @@ import {
   buildRefreshSetCookie,
   resolveRefreshToken,
 } from "../lib/refresh-cookie.js";
+import { buildAuthData } from "../lib/auth-response.js";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -139,13 +140,13 @@ export async function authRoutes(
     setRefreshCookie(reply, refreshRaw);
     return reply.status(201).send({
       success: true,
-      data: {
+      data: buildAuthData({
         accessToken,
-        /** @deprecated Prefer httpOnly cookie; still returned for backward compat. */
-        refreshToken: refreshRaw,
         expiresIn,
         user: publicUser(user),
-      },
+        refreshRaw,
+        allowBodyRefresh: config.ALLOW_BODY_REFRESH,
+      }),
     });
   });
 
@@ -203,12 +204,13 @@ export async function authRoutes(
     setRefreshCookie(reply, refreshRaw);
     return {
       success: true,
-      data: {
+      data: buildAuthData({
         accessToken,
-        refreshToken: refreshRaw,
         expiresIn,
         user: publicUser(user),
-      },
+        refreshRaw,
+        allowBodyRefresh: config.ALLOW_BODY_REFRESH,
+      }),
     };
   });
 
@@ -246,12 +248,13 @@ export async function authRoutes(
     setRefreshCookie(reply, refreshRaw);
     return {
       success: true,
-      data: {
+      data: buildAuthData({
         accessToken,
-        refreshToken: refreshRaw,
         expiresIn,
         user: publicUser(stored.user),
-      },
+        refreshRaw,
+        allowBodyRefresh: config.ALLOW_BODY_REFRESH,
+      }),
     };
   });
 
