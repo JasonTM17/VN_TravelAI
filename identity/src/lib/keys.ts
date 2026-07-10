@@ -6,6 +6,12 @@ export type KeySlot = {
   publicJwk: Record<string, unknown>;
 };
 
+export type LoadKeySlotsOptions = {
+  /** When true, missing primary PEM throws (production / JWT_REQUIRE_PEM). */
+  requirePem?: boolean;
+  nodeEnv?: string;
+};
+
 async function keyFromPem(pem: string, kid: string): Promise<KeySlot> {
   const privateKey = await importPKCS8(pem.replace(/\\n/g, "\n"), "EdDSA");
   const jwk = await exportJWK(privateKey);
@@ -36,19 +42,40 @@ async function generateSlot(kid: string): Promise<KeySlot> {
 }
 
 /**
- * Always returns dual key slots (PRIMARY + SECONDARY) for JWKS rotation readiness.
- * Missing PEMs generate ephemeral Ed25519 pairs (dev only).
+ * Returns dual key slots (PRIMARY + SECONDARY) for JWKS rotation.
+ * Missing PEMs generate ephemeral pairs only in non-production when requirePem is false.
  */
-export async function loadKeySlots(primaryPem?: string, secondaryPem?: string): Promise<{
+export async function loadKeySlots(
+  primaryPem?: string,
+  secondaryPem?: string,
+  options: LoadKeySlotsOptions = {},
+): Promise<{
   primary: KeySlot;
   secondary: KeySlot;
 }> {
-  const primary = primaryPem?.trim()
-    ? await keyFromPem(primaryPem, "primary")
+  const nodeEnv = options.nodeEnv ?? process.env.NODE_ENV ?? "development";
+  const requirePem =
+    options.requirePem === true ||
+    nodeEnv === "production" ||
+    process.env.JWT_REQUIRE_PEM === "true" ||
+    process.env.JWT_REQUIRE_PEM === "1";
+
+  const primaryTrim = primaryPem?.trim() ?? "";
+  if (!primaryTrim) {
+    if (requirePem) {
+      throw new Error(
+        "JWT_PRIMARY_PRIVATE_KEY is required in production (or when JWT_REQUIRE_PEM=true). Ephemeral keys are disabled.",
+      );
+    }
+  }
+
+  const primary = primaryTrim
+    ? await keyFromPem(primaryTrim, "primary")
     : await generateSlot("primary");
 
-  const secondary = secondaryPem?.trim()
-    ? await keyFromPem(secondaryPem, "secondary")
+  const secondaryTrim = secondaryPem?.trim() ?? "";
+  const secondary = secondaryTrim
+    ? await keyFromPem(secondaryTrim, "secondary")
     : await generateSlot("secondary");
 
   return { primary, secondary };

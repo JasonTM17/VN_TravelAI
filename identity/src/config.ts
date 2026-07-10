@@ -16,6 +16,14 @@ const envSchema = z.object({
   LOCKOUT_MINUTES: z.coerce.number().default(15),
   DEMO_USER_EMAIL: z.string().email().default("demo@travelai.local"),
   DEMO_USER_PASSWORD: z.string().min(8).default("DemoTravelAI1!"),
+  /** Only seed demo admin when true (local compose). Never enable in production. */
+  SEED_DEMO_USER: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
+  CORS_ORIGINS: z
+    .string()
+    .default("http://localhost:3000,http://127.0.0.1:3000,http://localhost:53000,http://127.0.0.1:53000"),
   LOG_LEVEL: z.string().default("info"),
 });
 

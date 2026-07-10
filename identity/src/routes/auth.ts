@@ -8,7 +8,8 @@ import { hashToken, mintAccessToken, mintRefreshToken } from "../lib/tokens.js";
 import { sendProblem } from "../lib/problem.js";
 import { MAX_PASSWORD_LEN, MIN_PASSWORD_LEN, validatePasswordChange } from "../lib/password-policy.js";
 import type Redis from "ioredis";
-import { importJWK, jwtVerify } from "jose";
+import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
+import { toJwks } from "../lib/keys.js";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -45,12 +46,30 @@ export async function authRoutes(
   deps: {
     config: AppConfig;
     primary: KeySlot;
+    secondary: KeySlot;
     redis: Redis;
   },
 ) {
-  const { config, primary, redis } = deps;
+  const { config, primary, secondary, redis } = deps;
+  const jwks = createLocalJWKSet(toJwks(primary, secondary) as unknown as JSONWebKeySet);
+
+  async function rateLimitIp(req: FastifyRequest, reply: FastifyReply, prefix: string, limit: number) {
+    const rlKey = `${prefix}:${req.ip}`;
+    try {
+      const hits = await redis.incr(rlKey);
+      if (hits === 1) await redis.expire(rlKey, 60);
+      if (hits > limit) {
+        sendProblem(reply, 429, "Too many requests", "Rate limit exceeded");
+        return false;
+      }
+    } catch {
+      // fail-open when Redis unavailable
+    }
+    return true;
+  }
 
   app.post("/v1/auth/register", async (req, reply) => {
+    if (!(await rateLimitIp(req, reply, "rl:register", 10))) return;
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
       return sendProblem(reply, 400, "Validation error", JSON.stringify(parsed.error.flatten()));
@@ -94,13 +113,8 @@ export async function authRoutes(
     if (!parsed.success) {
       return sendProblem(reply, 400, "Validation error", JSON.stringify(parsed.error.flatten()));
     }
+    if (!(await rateLimitIp(req, reply, "rl:login", 30))) return;
     const email = parsed.data.email.toLowerCase();
-    const rlKey = `rl:login:${req.ip}`;
-    const hits = await redis.incr(rlKey);
-    if (hits === 1) await redis.expire(rlKey, 60);
-    if (hits > 30) {
-      return sendProblem(reply, 429, "Too many requests", "Rate limit exceeded");
-    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -213,8 +227,8 @@ export async function authRoutes(
     }
     const token = header.slice(7);
     try {
-      const pub = await importJWK(primary.publicJwk as never, "EdDSA");
-      const { payload } = await jwtVerify(token, pub, {
+      // Verify against both primary and secondary JWKS slots (rotation)
+      const { payload } = await jwtVerify(token, jwks, {
         issuer: config.JWT_ISSUER,
         audience: config.JWT_AUDIENCE,
       });

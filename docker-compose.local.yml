@@ -62,6 +62,8 @@ services:
     environment:
       DATABASE_URL: postgresql://travelai:travelai_dev@postgres:5432/travelai_identity
       REDIS_URL: redis://redis:6379
+      SEED_DEMO_USER: "true"
+      CORS_ORIGINS: http://localhost:53000,http://127.0.0.1:53000
   api:
     ports: !override
       - "53001:3001"
@@ -72,6 +74,7 @@ services:
       MEILI_HOST: http://meilisearch:7700
       IDENTITY_JWKS_URL: http://identity:3002/.well-known/jwks.json
       CORS_ORIGINS: http://localhost:53000,http://127.0.0.1:53000
+      RUN_SEED: "true"
   ai:
     ports: !override
       - "53003:3003"
@@ -82,6 +85,7 @@ services:
       AI_DEGRADED_MODE: ${AI_DEGRADED_MODE:-false}
       API_BASE_URL: http://api:3001
       IDENTITY_JWKS_URL: http://identity:3002/.well-known/jwks.json
+      CORS_ORIGINS: http://localhost:53000,http://127.0.0.1:53000
     depends_on:
       chat-webhook:
         condition: service_healthy

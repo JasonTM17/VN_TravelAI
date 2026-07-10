@@ -114,6 +114,8 @@ services:
       COOKIE_SECRET: ${IDENTITY_COOKIE_SECRET:-dev_cookie_secret_change_me_32chars}
       DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-demo@travelai.local}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-DemoTravelAI1!}
+      SEED_DEMO_USER: ${SEED_DEMO_USER:-true}
+      CORS_ORIGINS: ${IDENTITY_CORS_ORIGINS:-${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:53000,http://127.0.0.1:53000}}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -146,6 +148,7 @@ services:
       IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-http://identity:3002/.well-known/jwks.json}
       IDENTITY_ISSUER: ${IDENTITY_ISSUER:-https://identity.travelai.local}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      RUN_SEED: ${RUN_SEED:-true}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -181,6 +184,7 @@ services:
       API_BASE_URL: http://api:3001
       IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-http://identity:3002/.well-known/jwks.json}
       IDENTITY_ISSUER: ${IDENTITY_ISSUER:-https://identity.travelai.local}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:53000,http://127.0.0.1:53000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       redis:

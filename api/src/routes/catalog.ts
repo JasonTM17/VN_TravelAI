@@ -3,6 +3,7 @@ import type { MeiliSearch } from "meilisearch";
 import type Redis from "ioredis";
 import { prisma } from "../db.js";
 import { sendProblem } from "../lib/problem.js";
+import { meiliCmpNumber, meiliEqNumber, meiliEqString } from "../lib/meili-filter.js";
 import { enforceRateLimit } from "../lib/rate-limit.js";
 
 function pageMeta(page: number, limit: number, total: number) {
@@ -22,8 +23,9 @@ export async function catalogRoutes(
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 24)));
     if (q.q) {
+      const countryFilter = meiliEqString("countryCode", q.country);
       const result = await meili.index("destinations").search(q.q, {
-        filter: q.country ? `countryCode = "${q.country}"` : undefined,
+        filter: countryFilter ?? undefined,
         limit,
         offset: (page - 1) * limit,
       });
@@ -69,10 +71,14 @@ export async function catalogRoutes(
 
     if (q.q) {
       const filters: string[] = [];
-      if (q.destination) filters.push(`destinationSlug = "${q.destination}"`);
-      if (q.stars) filters.push(`stars = ${Number(q.stars)}`);
-      if (q.minPrice) filters.push(`priceFromVnd >= ${Number(q.minPrice)}`);
-      if (q.maxPrice) filters.push(`priceFromVnd <= ${Number(q.maxPrice)}`);
+      const destF = meiliEqString("destinationSlug", q.destination);
+      const starsF = meiliEqNumber("stars", q.stars);
+      const minF = meiliCmpNumber("priceFromVnd", ">=", q.minPrice);
+      const maxF = meiliCmpNumber("priceFromVnd", "<=", q.maxPrice);
+      if (destF) filters.push(destF);
+      if (starsF) filters.push(starsF);
+      if (minF) filters.push(minF);
+      if (maxF) filters.push(maxF);
       const result = await meili.index("hotels").search(q.q, {
         filter: filters.length ? filters.join(" AND ") : undefined,
         limit,
@@ -135,8 +141,9 @@ export async function catalogRoutes(
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 24)));
     if (q.q) {
+      const destF = meiliEqString("destinationSlug", q.destination);
       const result = await meili.index("tours").search(q.q, {
-        filter: q.destination ? `destinationSlug = "${q.destination}"` : undefined,
+        filter: destF ?? undefined,
         limit,
         offset: (page - 1) * limit,
       });

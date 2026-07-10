@@ -36,7 +36,8 @@ async function main() {
     },
   });
 
-  await app.register(cors, { origin: true, credentials: true });
+  const origins = config.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
+  await app.register(cors, { origin: origins, credentials: true });
   await app.register(helmet, {
     contentSecurityPolicy: {
       useDefaults: false,
@@ -57,8 +58,9 @@ async function main() {
   const { primary, secondary } = await loadKeySlots(
     config.JWT_PRIMARY_PRIVATE_KEY,
     config.JWT_SECONDARY_PRIVATE_KEY,
+    { nodeEnv: config.NODE_ENV },
   );
-  if (!config.JWT_PRIMARY_PRIVATE_KEY) {
+  if (!config.JWT_PRIMARY_PRIVATE_KEY?.trim()) {
     app.log.warn("JWT_PRIMARY_PRIVATE_KEY empty — generated ephemeral Ed25519 key for this process");
   }
 
@@ -98,13 +100,16 @@ async function main() {
   });
   app.get("/.well-known/jwks.json", async () => toJwks(primary, secondary));
 
-  await authRoutes(app, { config, primary, redis });
+  await authRoutes(app, { config, primary, secondary, redis });
   // secondary is always loaded for JWKS dual-slot rotation; primary signs new tokens
 
-  try {
-    await ensureDemoUser(config.DEMO_USER_EMAIL.toLowerCase(), config.DEMO_USER_PASSWORD);
-  } catch (err) {
-    app.log.warn({ err }, "Demo user seed skipped (DB may not be migrated yet)");
+  if (config.SEED_DEMO_USER) {
+    try {
+      await ensureDemoUser(config.DEMO_USER_EMAIL.toLowerCase(), config.DEMO_USER_PASSWORD);
+      app.log.info("Demo admin user ensured (SEED_DEMO_USER=true)");
+    } catch (err) {
+      app.log.warn({ err }, "Demo user seed skipped (DB may not be migrated yet)");
+    }
   }
 
   await app.listen({ port: config.PORT, host: "0.0.0.0" });
