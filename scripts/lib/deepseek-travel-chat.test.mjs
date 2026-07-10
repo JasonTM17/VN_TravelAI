@@ -61,7 +61,10 @@ describe("buildChatMessages", () => {
     assert.ok(msgs[0].content.includes("TravelAI"));
     assert.ok(TRAVEL_SYSTEM_PROMPT.length > 40);
     assert.equal(msgs[1].role, "user");
-    assert.equal(msgs[1].content, "khách sạn gần phố cổ Hội An");
+    assert.match(msgs[1].content, /USER_START/);
+    assert.match(msgs[1].content, /khách sạn gần phố cổ Hội An/);
+    assert.match(msgs[1].content, /USER_END/);
+    assert.ok(msgs[0].content.includes("USER_START"));
   });
 });
 

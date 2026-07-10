@@ -8,6 +8,7 @@ import {
   parseToolArgs,
   executeCatalogTool,
 } from "./deepseek-tools.mjs";
+import { frameUserMessage, UNTRUSTED_USER_SYSTEM_NOTE } from "./prompt-guard.mjs";
 
 export const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 export const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -71,9 +72,10 @@ export function isLegacyTemplateReply(reply) {
  * @returns {{ role: string, content: string }[]}
  */
 export function buildChatMessages(userMessage) {
+  const framed = frameUserMessage(userMessage, { maxLen: 4000 });
   return [
-    { role: "system", content: TRAVEL_SYSTEM_PROMPT },
-    { role: "user", content: String(userMessage || "").slice(0, 4000) },
+    { role: "system", content: `${TRAVEL_SYSTEM_PROMPT}\n\n${UNTRUSTED_USER_SYSTEM_NOTE}` },
+    { role: "user", content: framed.text },
   ];
 }
 
