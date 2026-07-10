@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, X, Plane } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { getDict, type Locale } from "@/lib/i18n";
 import { clearSession, getAccessToken } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
@@ -19,47 +19,47 @@ export function Navbar({ locale }: { locale: Locale }) {
     setAuthed(Boolean(getAccessToken()));
   }, [pathname]);
 
+  // Stitch WanderViet / Traveloka nav order
   const links = [
-    { href: `/${locale}`, label: t.nav.home },
     { href: `/${locale}/hotels`, label: t.nav.hotels },
     { href: `/${locale}/flights`, label: t.nav.flights },
     { href: `/${locale}/tours`, label: t.nav.tours },
-    { href: `/${locale}/transport`, label: locale === "en" ? "Transport" : "Combo" },
-    { href: `/${locale}/ai`, label: t.nav.ai },
+    { href: `/${locale}/transport`, label: t.nav.transport },
   ];
 
   const other = locale === "vi" ? "en" : "vi";
   const switched = pathname?.replace(`/${locale}`, `/${other}`) || `/${other}`;
 
   return (
-    <header className="nav-blue sticky top-0 z-50 text-white shadow-md">
-      <div className="mx-auto flex h-[60px] max-w-6xl items-center justify-between gap-4 px-4">
-        <Link href={`/${locale}`} className="flex items-center gap-2 font-bold tracking-tight">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25">
-            <Plane className="h-4 w-4" />
-          </span>
-          <span className="text-lg">{t.brand}</span>
-        </Link>
+    <header className="sticky top-0 z-50 bg-[#0064d2] text-white shadow-md">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 md:h-[60px] md:px-8">
+        <div className="flex items-center gap-8">
+          <Link
+            href={`/${locale}`}
+            className="text-xl font-black italic tracking-tight text-white md:text-2xl"
+          >
+            {t.brand}
+          </Link>
+          <nav className="hidden items-center gap-6 lg:flex">
+            {links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={cn(
+                  "text-sm font-medium text-white/90 transition hover:text-white",
+                  pathname?.startsWith(l.href) && "font-semibold text-white",
+                )}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
-        <nav className="hidden items-center gap-1 lg:flex">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm text-white/90 transition hover:bg-white/10 hover:text-white",
-                pathname === l.href && "bg-white/15 font-semibold text-white",
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           <Link
             href={switched}
-            className="rounded-md border border-white/30 px-2.5 py-1 text-xs font-semibold uppercase text-white/90 hover:bg-white/10"
+            className="rounded-md px-2 py-1 text-xs font-semibold uppercase text-white/90 hover:bg-white/10"
           >
             {other}
           </Link>
@@ -73,7 +73,7 @@ export function Navbar({ locale }: { locale: Locale }) {
               </Link>
               <button
                 type="button"
-                className="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-[#0064d2]"
+                className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-[#0064d2]"
                 onClick={() => {
                   clearSession();
                   setAuthed(false);
@@ -85,12 +85,12 @@ export function Navbar({ locale }: { locale: Locale }) {
             </>
           ) : (
             <>
-              <Link href={`/${locale}/login`} className="text-sm font-medium text-white/95 hover:text-white">
+              <Link href={`/${locale}/login`} className="text-sm font-medium text-white hover:underline">
                 {t.nav.login}
               </Link>
               <Link
                 href={`/${locale}/register`}
-                className="rounded-md bg-[#ff6d00] px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-[#e65100]"
+                className="rounded-lg bg-[#ff6d00] px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-[#e65100]"
               >
                 {t.nav.register}
               </Link>
@@ -111,9 +111,22 @@ export function Navbar({ locale }: { locale: Locale }) {
                 {l.label}
               </Link>
             ))}
+            <Link href={`/${locale}/ai`} onClick={() => setOpen(false)} className="rounded-md px-2 py-2 text-sm">
+              {t.nav.ai}
+            </Link>
             <Link href={switched} className="rounded-md px-2 py-2 text-sm uppercase">
               {other}
             </Link>
+            {!authed ? (
+              <>
+                <Link href={`/${locale}/login`} className="rounded-md px-2 py-2 text-sm">
+                  {t.nav.login}
+                </Link>
+                <Link href={`/${locale}/register`} className="rounded-md px-2 py-2 text-sm font-semibold text-[#ffb380]">
+                  {t.nav.register}
+                </Link>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}

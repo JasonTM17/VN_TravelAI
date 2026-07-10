@@ -1,6 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, ShieldCheck, MapPinned, Star } from "lucide-react";
+import {
+  Building2,
+  Flame,
+  Map,
+  Plane,
+  Sparkles,
+  Star,
+  Ticket,
+} from "lucide-react";
 import { DestinationCard } from "@/components/destination-card";
 import { SearchHero } from "@/components/search-hero";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -19,179 +27,205 @@ export default async function HomePage({
 
   let destinations: Awaited<ReturnType<typeof api.listDestinations>>["data"] = [];
   let tours: Awaited<ReturnType<typeof api.listTours>>["data"] = [];
-  try {
-    const [d, tourRes] = await Promise.all([api.listDestinations(), api.listTours({ limit: 4 })]);
-    destinations = d.data?.slice(0, 8) ?? [];
-    tours = tourRes.data?.slice(0, 4) ?? [];
-  } catch {
-    destinations = [];
-    tours = [];
+  let hotels: Awaited<ReturnType<typeof api.listHotels>>["data"] = [];
+  let catalogError = false;
+
+  // allSettled: one failing resource must not blank the whole homepage
+  const [dRes, tourRes, hotelRes] = await Promise.allSettled([
+    api.listDestinations(),
+    api.listTours({ limit: 8 }),
+    api.listHotels({ limit: 8 }),
+  ]);
+  if (dRes.status === "fulfilled") {
+    destinations = dRes.value.data?.slice(0, 8) ?? [];
+  } else {
+    catalogError = true;
   }
+  if (tourRes.status === "fulfilled") {
+    const rawTours = tourRes.value.data ?? [];
+    const seen = new Set<string>();
+    const picked: typeof tours = [];
+    for (const tour of rawTours) {
+      const key = tour.destinationSlug ?? tour.slug;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      picked.push(tour);
+      if (picked.length >= 4) break;
+    }
+    tours = picked.length ? picked : rawTours.slice(0, 4);
+  } else {
+    catalogError = true;
+  }
+  if (hotelRes.status === "fulfilled") {
+    hotels = hotelRes.value.data?.slice(0, 4) ?? [];
+  } else {
+    catalogError = true;
+  }
+
+  const emptyHint = catalogError
+    ? locale === "en"
+      ? "Cannot reach API/catalog. Start Docker (postgres/redis) and api on :53001, then reseed."
+      : "Không kết nối được API/catalog. Bật Docker (postgres/redis) + api :53001 rồi seed lại."
+    : t.empty.description;
+
+  const products = [
+    { href: `/${locale}/hotels`, label: t.nav.hotels, icon: Building2, tone: "bg-[#e8f1fc] text-[#0064d2]" },
+    { href: `/${locale}/flights`, label: t.nav.flights, icon: Plane, tone: "bg-[#e8f8f0] text-[#00a86b]" },
+    { href: `/${locale}/tours`, label: t.nav.tours, icon: Map, tone: "bg-[#fff4e8] text-[#ff6d00]" },
+    { href: `/${locale}/transport`, label: t.nav.transport, icon: Ticket, tone: "bg-[#f3e8ff] text-[#7c3aed]" },
+    { href: `/${locale}/ai`, label: t.nav.ai, icon: Sparkles, tone: "bg-[#e0f2fe] text-[#0284c7]" },
+  ];
 
   const promos = [
     {
       title: locale === "en" ? "Ha Long premium cruise" : "Du thuyền Hạ Long đẳng cấp",
       img: "/images/destinations/ha-long.jpg",
       href: `/${locale}/destinations/ha-long`,
-      badge: "HOT",
+      badge: locale === "en" ? "Up to 30% off" : "Giảm đến 30%",
+      badgeTone: "error" as const,
     },
     {
       title: locale === "en" ? "Hoi An lantern nights" : "Hội An — Mùa lồng đèn lung linh",
       img: "/images/destinations/hoi-an.jpg",
       href: `/${locale}/destinations/hoi-an`,
-      badge: "-15%",
+      badge: locale === "en" ? "Hotel + flight combo" : "Combo khách sạn + vé",
+      badgeTone: "cta" as const,
     },
   ];
 
   return (
     <div data-testid="content-ready" className="-mt-8">
-      {/* Hero — Stitch WanderViet / Traveloka pattern */}
-      <section className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen overflow-hidden bg-[#0064d2]">
-        <div className="absolute inset-0">
-          <Image
-            src="/images/destinations/ha-long.jpg"
-            alt="TravelAI hero"
-            fill
-            priority
-            className="object-cover opacity-35"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0064d2]/95 via-[#0064d2]/75 to-[#f5f7fa]" />
-        </div>
-
-        <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-12 text-center sm:pt-16">
-          <h1 className="animate-fade-in-up text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-            {locale === "en" ? "Explore the beauty of Vietnam" : "Khám phá vẻ đẹp Việt Nam"}
+      <section className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen bg-[#0064d2] pb-28 pt-12 md:pb-32 md:pt-14">
+        <div className="relative mx-auto max-w-4xl px-4 text-center">
+          <h1 className="animate-fade-in-up text-3xl font-bold tracking-tight text-white md:text-5xl">
+            {t.home.heroTitle}
           </h1>
-          <p className="animate-fade-in-up mx-auto mt-3 max-w-2xl text-sm text-white/90 sm:text-base">
+          <p className="animate-fade-in-up mx-auto mt-3 max-w-2xl text-base text-white/90 md:text-lg">
             {t.home.heroSub}
           </p>
-          <SearchHero locale={locale} t={t} />
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <Link href={`/${locale}/ai`} className="btn-accent">
-              <Sparkles className="h-4 w-4" />
-              {t.home.aiCta}
-            </Link>
-            <Link
-              href={`/${locale}/explore`}
-              className="rounded-lg border border-white/40 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur hover:bg-white/20"
-            >
-              {t.nav.explore}
-            </Link>
-          </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-0">
-        {/* Trust strip */}
-        <section className="relative z-10 -mt-6 grid gap-3 sm:grid-cols-3">
-          {[
-            {
-              icon: <MapPinned className="h-5 w-5 text-[#0064d2]" />,
-              title: locale === "en" ? "20+ destinations" : "20+ điểm đến",
-              desc: locale === "en" ? "Vietnam first + world" : "Việt Nam & thế giới",
-            },
-            {
-              icon: <Sparkles className="h-5 w-5 text-[#ff6d00]" />,
-              title: locale === "en" ? "AI itineraries" : "Lịch trình AI",
-              desc: "TravelAI Concierge",
-            },
-            {
-              icon: <ShieldCheck className="h-5 w-5 text-[#00a86b]" />,
-              title: locale === "en" ? "Secure booking" : "Đặt chỗ an toàn",
-              desc: locale === "en" ? "Mock pay ready" : "Thanh toán mock sẵn sàng",
-            },
-          ].map((item) => (
-            <div key={item.title} className="surface-panel flex items-start gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f1fc]">{item.icon}</div>
-              <div>
-                <div className="font-semibold">{item.title}</div>
-                <div className="text-sm text-muted">{item.desc}</div>
-              </div>
-            </div>
-          ))}
+      <div className="relative z-10 mx-auto -mt-20 max-w-4xl px-0 md:-mt-24">
+        <SearchHero locale={locale} t={t} />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-0">
+        {/* Product discovery — Traveloka multi-vertical icons */}
+        <section className="mt-8" aria-label={t.home.categories}>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
+            {products.map((p) => (
+              <Link
+                key={p.href}
+                href={p.href}
+                className="card-hover flex flex-col items-center gap-2 rounded-xl bg-white px-2 py-3 text-center shadow-elevated"
+              >
+                <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${p.tone}`}>
+                  <p.icon className="h-6 w-6" />
+                </span>
+                <span className="text-xs font-semibold leading-tight text-[#1a1a1a] sm:text-sm">{p.label}</span>
+              </Link>
+            ))}
+          </div>
         </section>
 
-        {/* Hot promos — Stitch pattern */}
         <section className="mt-12">
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#ff6d00]">
-                {locale === "en" ? "Hot deals" : "Khuyến mãi cực hot"}
-              </p>
-              <h2 className="text-2xl font-bold text-[#1a1a1a]">
-                {locale === "en" ? "Featured offers" : "Ưu đãi nổi bật"}
-              </h2>
-            </div>
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-2xl font-bold text-[#1a1a1a]">
+              <Flame className="h-6 w-6 text-[#ff6d00]" />
+              {t.home.hotDeals}
+            </h2>
             <Link href={`/${locale}/tours`} className="text-sm font-semibold text-[#0064d2] hover:underline">
               {t.home.viewAll}
             </Link>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible">
             {promos.map((p) => (
-              <Link key={p.href} href={p.href} className="card-hover group relative overflow-hidden rounded-xl shadow-elevated">
-                <div className="relative aspect-[16/10]">
-                  <Image src={p.img} alt={p.title} fill className="object-cover transition duration-500 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                  <span className="absolute left-3 top-3 rounded-md bg-[#ff6d00] px-2 py-0.5 text-xs font-bold text-white">
+              <Link
+                key={p.href}
+                href={p.href}
+                className="card-hover group relative h-48 min-w-[280px] flex-1 overflow-hidden rounded-xl shadow-md md:min-w-0"
+              >
+                <Image
+                  src={p.img}
+                  alt={p.title}
+                  fill
+                  className="object-cover transition duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <span
+                    className={
+                      p.badgeTone === "error"
+                        ? "mb-2 inline-block rounded bg-red-600 px-2 py-0.5 text-xs font-bold text-white"
+                        : "mb-2 inline-block rounded bg-[#ff6d00] px-2 py-0.5 text-xs font-bold text-white"
+                    }
+                  >
                     {p.badge}
                   </span>
-                  <div className="absolute bottom-3 left-3 right-3 text-sm font-semibold text-white">{p.title}</div>
+                  <div className="text-lg font-bold leading-tight text-white">{p.title}</div>
                 </div>
               </Link>
             ))}
             <Link
               href={`/${locale}/ai`}
-              className="card-hover flex flex-col justify-between rounded-xl bg-gradient-to-br from-[#0064d2] to-[#0d9488] p-5 text-white shadow-elevated"
+              className="card-hover flex h-48 min-w-[280px] flex-1 flex-col justify-between rounded-xl bg-[#0064d2] p-5 text-white shadow-md md:min-w-0"
             >
               <div>
                 <Sparkles className="h-6 w-6" />
-                <h3 className="mt-3 text-lg font-bold">TravelAI Concierge</h3>
-                <p className="mt-2 text-sm text-white/85">
-                  {locale === "en"
-                    ? "Multi-day plans linked to real hotels & tours."
-                    : "Sinh lịch trình nhiều ngày, gắn khách sạn & tour thật."}
-                </p>
+                <h3 className="mt-3 text-xl font-bold">{t.home.creditPromoTitle}</h3>
+                <p className="mt-2 text-sm text-white/85">{t.home.creditPromoSub}</p>
               </div>
-              <span className="mt-4 inline-flex w-fit rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-[#0064d2]">
+              <span className="inline-flex w-fit rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-[#0064d2]">
                 {t.home.aiCta}
               </span>
             </Link>
           </div>
         </section>
 
-        {/* Tours grid */}
-        <section className="mt-12">
-          <div className="mb-4 flex items-end justify-between">
-            <h2 className="text-2xl font-bold">
-              {locale === "en" ? "Featured tours" : "Tour đặc sắc"}
-            </h2>
-            <Link href={`/${locale}/tours`} className="text-sm font-semibold text-[#0064d2] hover:underline">
+        {/* Featured hotels */}
+        <section className="mt-14">
+          <div className="mb-5 flex items-end justify-between">
+            <h2 className="text-2xl font-bold text-[#1a1a1a]">{t.home.featuredHotels}</h2>
+            <Link href={`/${locale}/hotels`} className="text-sm font-semibold text-[#0064d2] hover:underline">
               {t.home.viewAll}
             </Link>
           </div>
-          {tours.length === 0 ? (
-            <EmptyState title={t.empty.title} description={t.empty.description} ctaHref={`/${locale}/explore`} ctaLabel={t.nav.explore} />
+          {hotels.length === 0 ? (
+            <EmptyState
+              title={t.empty.title}
+              description={emptyHint}
+              ctaHref={`/${locale}/hotels`}
+              ctaLabel={t.nav.hotels}
+            />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {tours.map((tour) => {
-                const title = locale === "en" ? tour.titleEn : tour.titleVi;
-                const img = tour.images?.[0] ?? "/images/categories/tours.jpg";
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {hotels.map((h) => {
+                const img = h.images?.[0] ?? "/images/categories/hotels.jpg";
                 return (
                   <Link
-                    key={tour.id}
-                    href={`/${locale}/tours/${tour.slug}`}
+                    key={h.id}
+                    href={`/${locale}/hotels/${h.slug}`}
                     className="card-hover overflow-hidden rounded-xl bg-white shadow-elevated"
+                    data-testid="hotel-card"
                   >
                     <div className="relative aspect-[4/3]">
-                      <Image src={img} alt={title} fill className="object-cover" />
+                      <Image src={img} alt={h.name} fill className="object-cover" sizes="(max-width:768px) 100vw, 25vw" />
+                      <span className="absolute left-2 top-2 rounded bg-white/95 px-2 py-0.5 text-xs font-semibold shadow-sm">
+                        {h.stars}★
+                      </span>
                     </div>
                     <div className="space-y-1.5 p-3">
-                      <div className="line-clamp-2 text-sm font-semibold leading-snug">{title}</div>
+                      <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug">{h.name}</div>
                       <div className="flex items-center gap-1 text-xs text-muted">
                         <Star className="h-3.5 w-3.5 fill-[#ffb400] text-[#ffb400]" />
-                        4.8 · {tour.durationDays} {t.common.days}
+                        <span className="font-semibold text-[#1a1a1a]">{h.rating?.toFixed(1) ?? "4.5"}</span>
+                        <span>· {h.destinationSlug}</span>
                       </div>
-                      <div className="text-base font-bold text-[#ff6d00]">{formatVnd(tour.priceFromVnd)}</div>
+                      <div className="text-base font-bold text-[#ff6d00]">
+                        {formatVnd(h.priceFromVnd)}
+                        <span className="ml-1 text-xs font-medium text-muted">/{t.common.night}</span>
+                      </div>
                     </div>
                   </Link>
                 );
@@ -200,10 +234,64 @@ export default async function HomePage({
           )}
         </section>
 
-        {/* Destinations */}
-        <section className="mt-12 pb-4">
-          <div className="mb-4 flex items-end justify-between">
-            <h2 className="text-2xl font-bold">
+        <section className="mt-14">
+          <div className="mb-5 flex items-end justify-between">
+            <h2 className="text-2xl font-bold text-[#1a1a1a]">{t.home.featuredTours}</h2>
+            <Link href={`/${locale}/tours`} className="text-sm font-semibold text-[#0064d2] hover:underline">
+              {t.home.viewAll}
+            </Link>
+          </div>
+          {tours.length === 0 ? (
+            <EmptyState
+              title={t.empty.title}
+              description={emptyHint}
+              ctaHref={`/${locale}/explore`}
+              ctaLabel={t.nav.explore}
+            />
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {tours.map((tour) => {
+                const title = locale === "en" ? tour.titleEn : tour.titleVi;
+                const img = tour.images?.[0] ?? "/images/categories/tours.jpg";
+                const sale = tour.priceFromVnd;
+                const list = Math.round(sale * 1.25);
+                return (
+                  <Link
+                    key={tour.id}
+                    href={`/${locale}/tours/${tour.slug}`}
+                    className="card-hover overflow-hidden rounded-xl bg-white shadow-elevated"
+                    data-testid="tour-card"
+                  >
+                    <div className="relative aspect-[4/3]">
+                      <Image src={img} alt={title} fill className="object-cover" sizes="(max-width:768px) 100vw, 25vw" />
+                      <span className="absolute left-2 top-2 rounded bg-white/95 px-2 py-0.5 text-xs font-semibold text-[#1a1a1a] shadow-sm">
+                        {tour.durationDays} {t.common.days}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 p-3">
+                      <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-[#1a1a1a]">
+                        {title}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted">
+                        <Star className="h-3.5 w-3.5 fill-[#ffb400] text-[#ffb400]" />
+                        <span className="font-semibold text-[#1a1a1a]">4.8</span>
+                        <span>· {tour.destinationSlug}</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 pt-0.5">
+                        <span className="text-xs text-muted line-through">{formatVnd(list)}</span>
+                        <span className="text-base font-bold text-[#ff6d00]">{formatVnd(sale)}</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-14 pb-4">
+          <div className="mb-5 flex items-end justify-between">
+            <h2 className="text-2xl font-bold text-[#1a1a1a]">
               <span className="gradient-text">{t.home.featured}</span>
             </h2>
             <Link href={`/${locale}/explore`} className="text-sm font-semibold text-[#0064d2] hover:underline">
@@ -213,7 +301,7 @@ export default async function HomePage({
           {destinations.length === 0 ? (
             <EmptyState
               title={t.empty.title}
-              description="API chưa sẵn sàng — chạy docker compose để seed catalog."
+              description={emptyHint}
               ctaHref={`/${locale}/ai`}
               ctaLabel={t.home.aiCta}
             />

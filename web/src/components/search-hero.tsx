@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { Building2, Plane, Map, Search } from "lucide-react";
+import { Building2, Plane, Map, Search, MapPin, CalendarDays } from "lucide-react";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -25,16 +25,16 @@ export function SearchHero({ locale, t }: { locale: Locale; t: Dictionary }) {
   ];
 
   return (
-    <div className="mx-auto mt-8 w-full max-w-3xl animate-fade-in-up rounded-2xl bg-white p-3 shadow-float sm:p-4">
-      <div className="search-tabs mb-3 flex gap-1 border-b border-border px-1">
+    <div className="mx-auto w-full max-w-4xl animate-fade-in-up rounded-2xl bg-white p-3 shadow-float sm:p-5">
+      <div className="search-tabs mb-4 flex gap-0 overflow-x-auto border-b border-border">
         {tabs.map((item) => (
           <button
             key={item.id}
             type="button"
             data-active={tab === item.id}
             className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-2.5 text-sm text-muted transition",
-              tab === item.id && "text-[#0064d2]",
+              "inline-flex shrink-0 items-center gap-1.5 px-4 py-3 text-sm text-muted transition",
+              tab === item.id && "border-b-2 border-[#0064d2] font-semibold text-[#0064d2]",
             )}
             onClick={() => setTab(item.id)}
           >
@@ -45,7 +45,7 @@ export function SearchHero({ locale, t }: { locale: Locale; t: Dictionary }) {
       </div>
 
       <form
-        className="grid gap-2 sm:grid-cols-[1.4fr_1fr_auto]"
+        className="grid gap-3 md:grid-cols-4 md:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           const query = q.trim();
@@ -58,26 +58,32 @@ export function SearchHero({ locale, t }: { locale: Locale; t: Dictionary }) {
           }
         }}
       >
-        <label className="text-left text-xs font-medium text-muted">
-          {locale === "en" ? "Destination / hotel" : "Thành phố, khách sạn, điểm đến"}
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t.home.searchPlaceholder}
-            className="input-field mt-1"
-            aria-label={t.home.searchPlaceholder}
-          />
+        <label className="text-left md:col-span-2">
+          <span className="mb-1 block text-sm font-semibold text-[#1a1a1a]">{t.home.searchDestLabel}</span>
+          <span className="relative block">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t.home.searchPlaceholder}
+              className="input-field pl-10"
+              aria-label={t.home.searchPlaceholder}
+            />
+          </span>
         </label>
-        <label className="text-left text-xs font-medium text-muted">
-          {locale === "en" ? "Date" : "Chọn ngày"}
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="input-field mt-1"
-          />
+        <label className="text-left">
+          <span className="mb-1 block text-sm font-semibold text-[#1a1a1a]">{t.home.searchDateLabel}</span>
+          <span className="relative block">
+            <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input-field pl-10"
+            />
+          </span>
         </label>
-        <button type="submit" className="btn-accent mt-auto h-[46px] self-end px-6">
+        <button type="submit" className="btn-accent h-[46px] w-full px-6">
           <Search className="h-4 w-4" />
           {t.home.searchCta}
         </button>

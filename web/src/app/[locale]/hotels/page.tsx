@@ -36,24 +36,25 @@ export default async function HotelsPage({
           <EmptyState title={t.empty.title} description={t.empty.description} ctaHref={`/${locale}`} ctaLabel={t.empty.cta} />
         </div>
       ) : (
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {hotels.map((h) => {
             const img = h.images?.[0] ?? "/images/categories/hotels.jpg";
             return (
               <Link
                 key={h.id}
                 href={`/${locale}/hotels/${h.slug}`}
-                className="card-hover flex overflow-hidden rounded-2xl border border-border bg-card shadow-elevated"
+                className="card-hover overflow-hidden rounded-xl bg-white shadow-elevated"
               >
-                <div className="relative hidden w-40 shrink-0 sm:block">
-                  <Image src={img} alt={h.name} fill className="object-cover" />
+                <div className="relative aspect-[16/10]">
+                  <Image src={img} alt={h.name} fill className="object-cover" sizes="(max-width:768px) 100vw, 33vw" />
+                  <span className="absolute left-2 top-2 rounded bg-white/95 px-2 py-0.5 text-xs font-semibold shadow-sm">
+                    {h.stars}★
+                  </span>
                 </div>
-                <div className="flex flex-1 items-start justify-between gap-3 p-4">
-                  <div>
-                    <div className="font-semibold">{h.name}</div>
-                    <div className="mt-1 text-sm text-muted">
-                      {"★".repeat(h.stars)} · {h.destinationSlug ?? ""} · {h.rating?.toFixed(1)}
-                    </div>
+                <div className="space-y-1.5 p-3">
+                  <div className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug">{h.name}</div>
+                  <div className="text-xs text-muted">
+                    {h.destinationSlug ?? ""} · {h.rating?.toFixed(1) ?? "—"} ★
                   </div>
                   <PriceTag amount={h.priceFromVnd} prefix={t.common.from} suffix={`/${t.common.night}`} locale={locale} />
                 </div>
