@@ -301,10 +301,16 @@ const amenitiesPool = [
 async function main() {
   console.log("Seeding TravelAI catalog...");
 
+  await prisma.paymentAttempt.deleteMany();
   await prisma.review.deleteMany();
   await prisma.wishlistItem.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.itinerary.deleteMany();
+  await prisma.hotelNightInventory.deleteMany();
+  await prisma.ratePlan.deleteMany();
+  await prisma.hotelRoomType.deleteMany();
+  await prisma.vectorDocument.deleteMany().catch(() => undefined);
+  await prisma.notification.deleteMany().catch(() => undefined);
   await prisma.hotel.deleteMany();
   await prisma.tour.deleteMany();
   await prisma.flight.deleteMany();
@@ -348,9 +354,70 @@ async function main() {
           ],
           amenities: amenitiesPool.slice(0, 4 + (i % 3)),
           rating: Math.round((4.1 + (i % 8) * 0.1 + (dest.slug.length % 3) * 0.05) * 10) / 10,
+          roomsLeft: 12 + (i % 5) * 4,
         },
       });
       hotelCount++;
+
+      // PMS: 2 room types × 2 rate plans each
+      const std = await prisma.hotelRoomType.create({
+        data: {
+          hotelId: hotel.id,
+          code: "STD",
+          nameEn: "Standard Room",
+          nameVi: "Phòng Tiêu chuẩn",
+          maxOccupancy: 2,
+          roomsTotal: Math.max(6, Math.floor(hotel.roomsLeft * 0.55)),
+          basePriceVnd: price,
+          sortOrder: 0,
+        },
+      });
+      const dlx = await prisma.hotelRoomType.create({
+        data: {
+          hotelId: hotel.id,
+          code: "DLX",
+          nameEn: "Deluxe Room",
+          nameVi: "Phòng Deluxe",
+          maxOccupancy: 3,
+          roomsTotal: Math.max(3, Math.floor(hotel.roomsLeft * 0.3)),
+          basePriceVnd: Math.round(price * 1.35),
+          sortOrder: 1,
+        },
+      });
+      for (const rt of [std, dlx]) {
+        await prisma.ratePlan.createMany({
+          data: [
+            {
+              roomTypeId: rt.id,
+              code: "BAR",
+              nameEn: "Best Available Rate",
+              nameVi: "Giá tốt nhất",
+              priceVnd: rt.basePriceVnd,
+              breakfastIncluded: false,
+              refundable: true,
+            },
+            {
+              roomTypeId: rt.id,
+              code: "BB",
+              nameEn: "Bed & Breakfast",
+              nameVi: "Phòng + bữa sáng",
+              priceVnd: Math.round(rt.basePriceVnd * 1.15),
+              breakfastIncluded: true,
+              refundable: true,
+            },
+            {
+              roomTypeId: rt.id,
+              code: "NR",
+              nameEn: "Non-refundable",
+              nameVi: "Không hoàn tiền",
+              priceVnd: Math.round(rt.basePriceVnd * 0.9),
+              breakfastIncluded: false,
+              refundable: false,
+            },
+          ],
+        });
+      }
+
       await prisma.review.create({
         data: {
           author: "Lan Anh",

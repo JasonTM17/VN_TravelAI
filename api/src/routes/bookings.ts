@@ -12,6 +12,7 @@ import {
   incrementHotelNights,
 } from "../lib/hotel-night-inventory.js";
 import { notifyBookingConfirmed } from "../lib/notify.js";
+import { nightlyPriceVnd, pickRatePlan, pickRoomType } from "../lib/pms.js";
 
 const createSchema = z.object({
   itemType: z.enum(["hotel", "tour", "flight", "transport"]),
@@ -22,6 +23,9 @@ const createSchema = z.object({
   contactName: z.string().min(1).max(120).optional(),
   contactEmail: z.string().email().optional(),
   contactPhone: z.string().max(30).optional(),
+  /** PMS optional — defaults to STD room type + BAR rate plan when omitted. */
+  roomTypeId: z.string().uuid().optional(),
+  ratePlanId: z.string().uuid().optional(),
 });
 
 export async function bookingRoutes(
@@ -54,26 +58,67 @@ export async function bookingRoutes(
       return reply.status(200).send({ success: true, data: existing });
     }
 
-    const { itemType, itemId, guests, startDate, endDate, contactName, contactEmail, contactPhone } =
-      parsed.data;
+    const {
+      itemType,
+      itemId,
+      guests,
+      startDate,
+      endDate,
+      contactName,
+      contactEmail,
+      contactPhone,
+      roomTypeId,
+      ratePlanId,
+    } = parsed.data;
 
     let totalVnd = 0;
     let itemSnapshot: object = {};
 
     if (itemType === "hotel") {
-      const hotel = await prisma.hotel.findUnique({ where: { id: itemId } });
+      const hotel = await prisma.hotel.findUnique({
+        where: { id: itemId },
+        include: {
+          roomTypes: {
+            orderBy: { sortOrder: "asc" },
+            include: { ratePlans: { orderBy: { priceVnd: "asc" } } },
+          },
+        },
+      });
       if (!hotel) return sendProblem(reply, 404, "Not found", "Hotel not found");
+
+      const roomType = pickRoomType(hotel.roomTypes, roomTypeId);
+      if (roomTypeId && !roomType) {
+        return sendProblem(reply, 400, "Validation error", "Invalid roomTypeId for hotel");
+      }
+      const ratePlan = roomType ? pickRatePlan(roomType, ratePlanId) : null;
+      if (ratePlanId && roomType && !ratePlan) {
+        return sendProblem(reply, 400, "Validation error", "Invalid ratePlanId for room type");
+      }
+      if (roomType && guests > roomType.maxOccupancy) {
+        return sendProblem(
+          reply,
+          400,
+          "Validation error",
+          `Guests exceed max occupancy ${roomType.maxOccupancy} for ${roomType.code}`,
+        );
+      }
+
       const start = new Date(startDate);
       const end = endDate ? new Date(endDate) : null;
       const nightKeys = enumerateStayNights(start, end);
+      const defaultRooms = roomType?.roomsTotal ?? hotel.roomsLeft;
+      const scopeRoomTypeId = roomType?.id ?? null;
       const check = await prisma.$transaction((tx) =>
-        ensureAndCheckHotelNights(tx, itemId, start, end, hotel.roomsLeft),
+        ensureAndCheckHotelNights(tx, itemId, start, end, defaultRooms, scopeRoomTypeId),
       );
       if (!check.ok) {
         return sendProblem(reply, 409, "Conflict", check.reason);
       }
       const nights = nightKeys.length;
-      totalVnd = hotel.priceFromVnd * nights * guests;
+      const unit = roomType
+        ? nightlyPriceVnd(roomType, ratePlan)
+        : hotel.priceFromVnd;
+      totalVnd = unit * nights * guests;
       itemSnapshot = {
         type: "hotel",
         slug: hotel.slug,
@@ -81,6 +126,14 @@ export async function bookingRoutes(
         nights,
         nightKeys,
         roomsLeft: hotel.roomsLeft,
+        roomTypeId: roomType?.id ?? null,
+        roomTypeCode: roomType?.code ?? null,
+        roomTypeNameEn: roomType?.nameEn ?? null,
+        ratePlanId: ratePlan?.id ?? null,
+        ratePlanCode: ratePlan?.code ?? null,
+        nightlyVnd: unit,
+        breakfastIncluded: ratePlan?.breakfastIncluded ?? false,
+        refundable: ratePlan?.refundable ?? true,
       };
     } else if (itemType === "tour") {
       const tour = await prisma.tour.findUnique({ where: { id: itemId } });
@@ -197,22 +250,28 @@ export async function bookingRoutes(
               throw new Error("INVENTORY");
             }
           } else if (booking.itemType === "hotel") {
-            const snap = booking.itemSnapshot as { nightKeys?: string[] };
+            const snap = booking.itemSnapshot as { nightKeys?: string[]; roomTypeId?: string | null };
             const nights =
               snap.nightKeys ??
               enumerateStayNights(booking.startDate, booking.endDate);
             const hotel = await tx.hotel.findUnique({ where: { id: booking.itemId } });
+            let defaultRooms = hotel?.roomsLeft ?? 20;
+            const roomTypeId = snap.roomTypeId ?? null;
+            if (roomTypeId) {
+              const rt = await tx.hotelRoomType.findUnique({ where: { id: roomTypeId } });
+              if (rt) defaultRooms = rt.roomsTotal;
+            }
             const ensured = await ensureAndCheckHotelNights(
               tx,
               booking.itemId,
               booking.startDate,
               booking.endDate,
-              hotel?.roomsLeft ?? 20,
+              defaultRooms,
+              roomTypeId,
             );
             if (!ensured.ok) throw new Error("INVENTORY");
-            const ok = await decrementHotelNights(tx, booking.itemId, nights);
+            const ok = await decrementHotelNights(tx, booking.itemId, nights, roomTypeId);
             if (!ok) throw new Error("INVENTORY");
-            // keep aggregate roomsLeft roughly in sync (min across nights optional)
             await tx.hotel.updateMany({
               where: { id: booking.itemId, roomsLeft: { gte: 1 } },
               data: { roomsLeft: { decrement: 1 } },
@@ -229,7 +288,6 @@ export async function bookingRoutes(
         });
         return row;
       });
-      // Fire-and-forget notification (email log or SMTP)
       void notifyBookingConfirmed({
         userId: user.id,
         email: user.email,
@@ -259,7 +317,6 @@ export async function bookingRoutes(
       return sendProblem(reply, 409, "Conflict", `Cannot cancel booking in status ${booking.status}`);
     }
 
-    // Restore seats if cancelling a confirmed seat-inventory booking
     const updated = await prisma.$transaction(async (tx) => {
       if (booking.status === "confirmed" && isSeatInventoryType(booking.itemType)) {
         if (booking.itemType === "flight") {
@@ -273,10 +330,10 @@ export async function bookingRoutes(
             data: { seatsLeft: { increment: booking.guests } },
           });
         } else if (booking.itemType === "hotel") {
-          const snap = booking.itemSnapshot as { nightKeys?: string[] };
+          const snap = booking.itemSnapshot as { nightKeys?: string[]; roomTypeId?: string | null };
           const nights =
             snap.nightKeys ?? enumerateStayNights(booking.startDate, booking.endDate);
-          await incrementHotelNights(tx, booking.itemId, nights);
+          await incrementHotelNights(tx, booking.itemId, nights, snap.roomTypeId ?? null);
           await tx.hotel.updateMany({
             where: { id: booking.itemId },
             data: { roomsLeft: { increment: 1 } },

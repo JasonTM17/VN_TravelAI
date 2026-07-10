@@ -126,6 +126,10 @@ export async function catalogRoutes(
       include: {
         destination: true,
         reviews: { orderBy: { createdAt: "desc" }, take: 20 },
+        roomTypes: {
+          orderBy: { sortOrder: "asc" },
+          include: { ratePlans: { orderBy: { priceVnd: "asc" } } },
+        },
       },
     });
     if (!row) return sendProblem(reply, 404, "Not found", "Hotel not found");

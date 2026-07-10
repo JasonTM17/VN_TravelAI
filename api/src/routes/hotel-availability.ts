@@ -7,9 +7,10 @@ import { enumerateStayNights } from "../lib/hotel-nights.js";
 const qSchema = z.object({
   start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  roomTypeId: z.string().uuid().optional(),
 });
 
-/** Public availability calendar for a hotel slug. */
+/** Public availability calendar for a hotel slug (optional room type). */
 export async function hotelAvailabilityRoutes(app: FastifyInstance) {
   app.get("/v1/hotels/:slug/availability", async (req, reply) => {
     const { slug } = req.params as { slug: string };
@@ -17,26 +18,51 @@ export async function hotelAvailabilityRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return sendProblem(reply, 400, "Validation error", "start=YYYY-MM-DD required");
     }
-    const hotel = await prisma.hotel.findUnique({ where: { slug } });
+    const hotel = await prisma.hotel.findUnique({
+      where: { slug },
+      include: {
+        roomTypes: {
+          orderBy: { sortOrder: "asc" },
+          include: { ratePlans: { orderBy: { priceVnd: "asc" } } },
+        },
+      },
+    });
     if (!hotel) return sendProblem(reply, 404, "Not found", "Hotel not found");
+
+    let roomTypeId = parsed.data.roomTypeId ?? null;
+    let defaultRooms = hotel.roomsLeft;
+    if (roomTypeId) {
+      const rt = hotel.roomTypes.find((r) => r.id === roomTypeId);
+      if (!rt) return sendProblem(reply, 400, "Validation error", "Invalid roomTypeId");
+      defaultRooms = rt.roomsTotal;
+    } else if (hotel.roomTypes[0]) {
+      roomTypeId = hotel.roomTypes[0].id;
+      defaultRooms = hotel.roomTypes[0].roomsTotal;
+    }
+
     const start = new Date(parsed.data.start);
     const end = parsed.data.end ? new Date(parsed.data.end) : null;
     const nights = enumerateStayNights(start, end);
-    // Lazy-seed night rows without failing on zero inventory
     for (const night of nights) {
       const d = new Date(night + "T00:00:00.000Z");
-      const existing = await prisma.hotelNightInventory.findUnique({
-        where: { hotelId_night: { hotelId: hotel.id, night: d } },
+      const existing = await prisma.hotelNightInventory.findFirst({
+        where: { hotelId: hotel.id, night: d, roomTypeId },
       });
       if (!existing) {
         await prisma.hotelNightInventory.create({
-          data: { hotelId: hotel.id, night: d, roomsLeft: Math.max(0, hotel.roomsLeft) },
+          data: {
+            hotelId: hotel.id,
+            roomTypeId,
+            night: d,
+            roomsLeft: Math.max(0, defaultRooms),
+          },
         });
       }
     }
     const rows = await prisma.hotelNightInventory.findMany({
       where: {
         hotelId: hotel.id,
+        roomTypeId,
         night: {
           gte: new Date(nights[0] + "T00:00:00.000Z"),
           lte: new Date(nights[nights.length - 1] + "T00:00:00.000Z"),
@@ -49,6 +75,25 @@ export async function hotelAvailabilityRoutes(app: FastifyInstance) {
       data: {
         hotelId: hotel.id,
         slug: hotel.slug,
+        roomTypeId,
+        roomTypes: hotel.roomTypes.map((rt) => ({
+          id: rt.id,
+          code: rt.code,
+          nameEn: rt.nameEn,
+          nameVi: rt.nameVi,
+          maxOccupancy: rt.maxOccupancy,
+          roomsTotal: rt.roomsTotal,
+          basePriceVnd: rt.basePriceVnd,
+          ratePlans: rt.ratePlans.map((rp) => ({
+            id: rp.id,
+            code: rp.code,
+            nameEn: rp.nameEn,
+            nameVi: rp.nameVi,
+            priceVnd: rp.priceVnd,
+            breakfastIncluded: rp.breakfastIncluded,
+            refundable: rp.refundable,
+          })),
+        })),
         nights: rows.map((r) => ({
           night: r.night.toISOString().slice(0, 10),
           roomsLeft: r.roomsLeft,
