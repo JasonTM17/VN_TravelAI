@@ -204,3 +204,23 @@ model AdminAuditLog {
   @@index([createdAt])
   @@map("admin_audit_logs")
 }
+
+/** Marketing promo slides for home — data-driven, not hard-coded in FE. */
+model Promo {
+  id         String   @id @default(uuid()) @db.Uuid
+  slug       String   @unique
+  titleVi    String   @map("title_vi")
+  titleEn    String   @map("title_en")
+  badgeVi    String   @map("badge_vi")
+  badgeEn    String   @map("badge_en")
+  badgeTone  String   @default("cta") @map("badge_tone")
+  imageUrl   String   @map("image_url")
+  /** Path without locale prefix, e.g. /destinations/ha-long or /hotels/x */
+  hrefPath   String   @map("href_path")
+  sortOrder  Int      @default(0) @map("sort_order")
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([active, sortOrder])
+  @@map("promos")
+}

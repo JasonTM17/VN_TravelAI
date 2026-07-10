@@ -20,7 +20,7 @@ export async function catalogRoutes(
     if (!(await enforceRateLimit(redis, req, reply, CATALOG_RL))) return;
     const q = req.query as { country?: string; q?: string; page?: string; limit?: string };
     const page = Math.max(1, Number(q.page ?? 1));
-    const limit = Math.min(50, Math.max(1, Number(q.limit ?? 20)));
+    const limit = Math.min(100, Math.max(1, Number(q.limit ?? 24)));
     if (q.q) {
       const result = await meili.index("destinations").search(q.q, {
         filter: q.country ? `countryCode = "${q.country}"` : undefined,
@@ -65,7 +65,7 @@ export async function catalogRoutes(
       limit?: string;
     };
     const page = Math.max(1, Number(q.page ?? 1));
-    const limit = Math.min(50, Math.max(1, Number(q.limit ?? 20)));
+    const limit = Math.min(100, Math.max(1, Number(q.limit ?? 24)));
 
     if (q.q) {
       const filters: string[] = [];
@@ -133,7 +133,7 @@ export async function catalogRoutes(
     if (!(await enforceRateLimit(redis, req, reply, CATALOG_RL))) return;
     const q = req.query as { destination?: string; q?: string; page?: string; limit?: string };
     const page = Math.max(1, Number(q.page ?? 1));
-    const limit = Math.min(50, Math.max(1, Number(q.limit ?? 20)));
+    const limit = Math.min(100, Math.max(1, Number(q.limit ?? 24)));
     if (q.q) {
       const result = await meili.index("tours").search(q.q, {
         filter: q.destination ? `destinationSlug = "${q.destination}"` : undefined,
@@ -330,5 +330,18 @@ export async function catalogRoutes(
         tours: tours.hits,
       },
     };
+  });
+
+  /** Home promo carousel — active rows from Postgres (not FE hardcode). */
+  app.get("/v1/promos", async (req, reply) => {
+    if (!(await enforceRateLimit(redis, req, reply, CATALOG_RL))) return;
+    const q = req.query as { limit?: string };
+    const limit = Math.min(20, Math.max(1, Number(q.limit ?? 12)));
+    const rows = await prisma.promo.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      take: limit,
+    });
+    return { success: true, data: rows, meta: pageMeta(1, limit, rows.length) };
   });
 }

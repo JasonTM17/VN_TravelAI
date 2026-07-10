@@ -38,8 +38,16 @@ async function request<T>(base: string, path: string, init?: RequestInit): Promi
 }
 
 export const api = {
-  listDestinations: (q?: string) =>
-    request<ApiEnvelope<Destination[]>>(API_URL, `/v1/destinations${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  listDestinations: (params: Record<string, string | number | undefined> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    });
+    const qstr = qs.toString();
+    return request<ApiEnvelope<Destination[]>>(API_URL, `/v1/destinations${qstr ? `?${qstr}` : ""}`);
+  },
+  listPromos: (limit = 12) =>
+    request<ApiEnvelope<Promo[]>>(API_URL, `/v1/promos?limit=${limit}`),
   getDestination: (slug: string) =>
     request<ApiEnvelope<Destination>>(API_URL, `/v1/destinations/${slug}`),
   listHotels: (params: Record<string, string | number | undefined> = {}) => {
@@ -174,6 +182,20 @@ export type AdminAuditRow = {
   detail?: string | null;
   ip?: string | null;
   createdAt: string;
+};
+
+export type Promo = {
+  id: string;
+  slug: string;
+  titleVi: string;
+  titleEn: string;
+  badgeVi: string;
+  badgeEn: string;
+  badgeTone: string;
+  imageUrl: string;
+  hrefPath: string;
+  sortOrder: number;
+  active: boolean;
 };
 
 export type Destination = {

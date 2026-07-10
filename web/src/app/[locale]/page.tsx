@@ -14,7 +14,7 @@ import { PromoCarousel } from "@/components/promo-carousel";
 import { SearchHero } from "@/components/search-hero";
 import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
-import { buildHomePromoSlides } from "@/lib/gallery-slides";
+import { mapPromosToSlides } from "@/lib/promo-map";
 import { formatVnd } from "@/lib/utils";
 import { getDict, isLocale, type Locale } from "@/lib/i18n";
 
@@ -30,21 +30,26 @@ export default async function HomePage({
   let destinations: Awaited<ReturnType<typeof api.listDestinations>>["data"] = [];
   let tours: Awaited<ReturnType<typeof api.listTours>>["data"] = [];
   let hotels: Awaited<ReturnType<typeof api.listHotels>>["data"] = [];
+  let promos: ReturnType<typeof mapPromosToSlides> = [];
   let catalogError = false;
+  let catalogMeta = { destinations: 0, hotels: 0, tours: 0 };
 
   // allSettled: one failing resource must not blank the whole homepage
-  const [dRes, tourRes, hotelRes] = await Promise.allSettled([
-    api.listDestinations(),
-    api.listTours({ limit: 8 }),
-    api.listHotels({ limit: 8 }),
+  const [dRes, tourRes, hotelRes, promoRes] = await Promise.allSettled([
+    api.listDestinations({ limit: 48 }),
+    api.listTours({ limit: 24 }),
+    api.listHotels({ limit: 24 }),
+    api.listPromos(12),
   ]);
   if (dRes.status === "fulfilled") {
-    destinations = dRes.value.data?.slice(0, 8) ?? [];
+    destinations = dRes.value.data?.slice(0, 12) ?? [];
+    catalogMeta.destinations = dRes.value.meta?.total ?? destinations.length;
   } else {
     catalogError = true;
   }
   if (tourRes.status === "fulfilled") {
     const rawTours = tourRes.value.data ?? [];
+    catalogMeta.tours = tourRes.value.meta?.total ?? rawTours.length;
     const seen = new Set<string>();
     const picked: typeof tours = [];
     for (const tour of rawTours) {
@@ -52,16 +57,20 @@ export default async function HomePage({
       if (seen.has(key)) continue;
       seen.add(key);
       picked.push(tour);
-      if (picked.length >= 4) break;
+      if (picked.length >= 8) break;
     }
-    tours = picked.length ? picked : rawTours.slice(0, 4);
+    tours = picked.length ? picked : rawTours.slice(0, 8);
   } else {
     catalogError = true;
   }
   if (hotelRes.status === "fulfilled") {
-    hotels = hotelRes.value.data?.slice(0, 4) ?? [];
+    hotels = hotelRes.value.data?.slice(0, 8) ?? [];
+    catalogMeta.hotels = hotelRes.value.meta?.total ?? hotels.length;
   } else {
     catalogError = true;
+  }
+  if (promoRes.status === "fulfilled") {
+    promos = mapPromosToSlides(promoRes.value.data, locale, `/${locale}`);
   }
 
   const emptyHint = catalogError
@@ -77,8 +86,6 @@ export default async function HomePage({
     { href: `/${locale}/transport`, label: t.nav.transport, icon: Ticket, tone: "bg-[#f3e8ff] text-[#7c3aed]" },
     { href: `/${locale}/ai`, label: t.nav.ai, icon: Sparkles, tone: "bg-[#e0f2fe] text-[#0284c7]" },
   ];
-
-  const promos = buildHomePromoSlides(locale, `/${locale}`);
 
   return (
     <div data-testid="content-ready" className="-mt-8">
@@ -114,6 +121,19 @@ export default async function HomePage({
               </Link>
             ))}
           </div>
+          {!catalogError && (catalogMeta.destinations > 0 || catalogMeta.hotels > 0) ? (
+            <p
+              className="mt-4 text-center text-xs text-muted sm:text-sm"
+              data-testid="catalog-stats"
+              data-destinations={catalogMeta.destinations}
+              data-hotels={catalogMeta.hotels}
+              data-tours={catalogMeta.tours}
+            >
+              {locale === "en"
+                ? `${catalogMeta.destinations} destinations · ${catalogMeta.hotels} hotels · ${catalogMeta.tours} tours live from catalog`
+                : `${catalogMeta.destinations} điểm đến · ${catalogMeta.hotels} khách sạn · ${catalogMeta.tours} tour từ catalog live`}
+            </p>
+          ) : null}
         </section>
 
         <section className="mt-12">
@@ -128,7 +148,16 @@ export default async function HomePage({
           </div>
           <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
             <div className="min-w-0 flex-1">
-              <PromoCarousel slides={promos} />
+              {promos.length >= 1 ? (
+                <PromoCarousel slides={promos} />
+              ) : (
+                <EmptyState
+                  title={t.empty.title}
+                  description={emptyHint}
+                  ctaHref={`/${locale}/explore`}
+                  ctaLabel={t.nav.explore}
+                />
+              )}
             </div>
             <Link
               href={`/${locale}/ai`}
@@ -171,6 +200,7 @@ export default async function HomePage({
                     href={`/${locale}/hotels/${h.slug}`}
                     className="card-hover overflow-hidden rounded-xl bg-white shadow-elevated"
                     data-testid="hotel-card"
+                    data-slug={h.slug}
                   >
                     <div className="relative aspect-[4/3]">
                       <Image src={img} alt={h.name} fill className="object-cover" sizes="(max-width:768px) 100vw, 25vw" />

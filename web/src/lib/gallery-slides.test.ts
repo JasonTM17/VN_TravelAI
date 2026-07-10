@@ -4,7 +4,6 @@ import {
   clampSlideIndex,
   nextSlideIndex,
   prevSlideIndex,
-  buildHomePromoSlides,
   assertPromoSlides,
 } from "./gallery-slides";
 
@@ -29,15 +28,9 @@ describe("slide index bounds", () => {
   });
 });
 
-describe("home promo slides", () => {
-  it("returns at least 3 slides with public image paths", () => {
-    const slides = buildHomePromoSlides("vi", "/vi");
-    expect(slides.length).toBeGreaterThanOrEqual(3);
-    for (const s of slides) {
-      expect(s.img.startsWith("/images/")).toBe(true);
-      expect(s.href.includes("/destinations/")).toBe(true);
-      expect(s.title.length).toBeGreaterThan(3);
-    }
-    expect(() => assertPromoSlides(slides.slice(0, 2))).toThrow(/≥3/);
+describe("assertPromoSlides", () => {
+  it("requires ≥3 items", () => {
+    expect(assertPromoSlides([1, 2, 3])).toEqual([1, 2, 3]);
+    expect(() => assertPromoSlides([1, 2])).toThrow(/≥3/);
   });
 });

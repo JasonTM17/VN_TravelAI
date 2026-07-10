@@ -221,7 +221,7 @@ const destinations = [
     longitude: 103.8198,
   },
   {
-    slug: "bangkok-islands",
+    slug: "phuket",
     nameVi: "Phuket",
     nameEn: "Phuket",
     countryCode: "TH",
@@ -244,7 +244,37 @@ const destinations = [
     latitude: 35.0116,
     longitude: 135.7681,
   },
+  // --- Expanded catalog (reuses existing public images by region family) ---
+  { slug: "mui-ne", nameVi: "Mũi Né", nameEn: "Mui Ne", countryCode: "VN", region: "South Central", descriptionVi: "Đồi cát bay, resort biển Phan Thiết.", descriptionEn: "Sand dunes and beach resorts near Phan Thiet.", heroImageUrl: "/images/destinations/nha-trang.jpg", latitude: 10.933, longitude: 108.283 },
+  { slug: "con-dao", nameVi: "Côn Đảo", nameEn: "Con Dao", countryCode: "VN", region: "Southwest", descriptionVi: "Đảo lịch sử, biển xanh và rùa biển.", descriptionEn: "Historic island with pristine waters.", heroImageUrl: "/images/destinations/phu-quoc.jpg", latitude: 8.693, longitude: 106.61 },
+  { slug: "ha-giang", nameVi: "Hà Giang", nameEn: "Ha Giang", countryCode: "VN", region: "Northeast", descriptionVi: "Cao nguyên đá, đèo Mã Pí Lèng.", descriptionEn: "Rocky plateau and epic mountain passes.", heroImageUrl: "/images/destinations/sapa.jpg", latitude: 22.823, longitude: 104.984 },
+  { slug: "mai-chau", nameVi: "Mai Châu", nameEn: "Mai Chau", countryCode: "VN", region: "Northwest", descriptionVi: "Thung lũng xanh, homestay dân tộc Thái.", descriptionEn: "Green valley and Thai ethnic homestays.", heroImageUrl: "/images/destinations/ninh-binh.jpg", latitude: 20.66, longitude: 105.09 },
+  { slug: "quy-nhon", nameVi: "Quy Nhơn", nameEn: "Quy Nhon", countryCode: "VN", region: "South Central", descriptionVi: "Biển êm, Eo Gió và ẩm thực Bình Định.", descriptionEn: "Quiet beaches and Binh Dinh cuisine.", heroImageUrl: "/images/destinations/da-nang.jpg", latitude: 13.783, longitude: 109.219 },
+  { slug: "vung-tau", nameVi: "Vũng Tàu", nameEn: "Vung Tau", countryCode: "VN", region: "Southeast", descriptionVi: "Biển gần Sài Gòn, hải đăng và hải sản.", descriptionEn: "Closest beach escape from Saigon.", heroImageUrl: "/images/destinations/tp-hcm.jpg", latitude: 10.346, longitude: 107.084 },
+  { slug: "phan-thiet", nameVi: "Phan Thiết", nameEn: "Phan Thiet", countryCode: "VN", region: "South Central", descriptionVi: "Nước mắm, biển và resort cao cấp.", descriptionEn: "Coastal town of fish sauce and resorts.", heroImageUrl: "/images/destinations/nha-trang.jpg", latitude: 10.928, longitude: 108.102 },
+  { slug: "cat-ba", nameVi: "Cát Bà", nameEn: "Cat Ba", countryCode: "VN", region: "Northeast", descriptionVi: "Cổng vào Lan Hạ, leo núi và kayak.", descriptionEn: "Gateway to Lan Ha Bay.", heroImageUrl: "/images/destinations/ha-long.jpg", latitude: 20.728, longitude: 107.048 },
+  { slug: "tam-dao", nameVi: "Tam Đảo", nameEn: "Tam Dao", countryCode: "VN", region: "North", descriptionVi: "Thị trấn trên mây gần Hà Nội.", descriptionEn: "Cloud-town getaway near Hanoi.", heroImageUrl: "/images/destinations/ha-noi.jpg", latitude: 21.456, longitude: 105.643 },
+  { slug: "chau-doc", nameVi: "Châu Đốc", nameEn: "Chau Doc", countryCode: "VN", region: "Mekong Delta", descriptionVi: "Miếu Bà, biên giới và ẩm thực An Giang.", descriptionEn: "Mekong border town of temples and markets.", heroImageUrl: "/images/destinations/can-tho.jpg", latitude: 10.701, longitude: 105.117 },
+  { slug: "osaka", nameVi: "Osaka", nameEn: "Osaka", countryCode: "JP", region: "Kansai", descriptionVi: "Thủ phủ ẩm thực Nhật, lâu đài Osaka.", descriptionEn: "Japan's kitchen and castle city.", heroImageUrl: "/images/destinations/tokyo.jpg", latitude: 34.694, longitude: 135.502 },
+  { slug: "busan", nameVi: "Busan", nameEn: "Busan", countryCode: "KR", region: "Southeast", descriptionVi: "Thành phố biển Hàn — Haeundae, chợ Jagalchi.", descriptionEn: "Korea's beach metropolis.", heroImageUrl: "/images/destinations/seoul.jpg", latitude: 35.18, longitude: 129.075 },
+  { slug: "chiang-mai", nameVi: "Chiang Mai", nameEn: "Chiang Mai", countryCode: "TH", region: "North", descriptionVi: "Đền cổ, chợ đêm và đồi phía Bắc Thái.", descriptionEn: "Northern Thai temples and night markets.", heroImageUrl: "/images/destinations/bangkok.jpg", latitude: 18.788, longitude: 98.985 },
+  { slug: "krabi", nameVi: "Krabi", nameEn: "Krabi", countryCode: "TH", region: "Andaman", descriptionVi: "Vách đá vôi, Railay và đảo ngoài khơi.", descriptionEn: "Limestone cliffs and Andaman islands.", heroImageUrl: "/images/destinations/phuket.jpg", latitude: 8.086, longitude: 98.906 },
+  { slug: "jakarta", nameVi: "Jakarta", nameEn: "Jakarta", countryCode: "ID", region: "Java", descriptionVi: "Thủ đô Indonesia sôi động.", descriptionEn: "Indonesia's bustling capital.", heroImageUrl: "/images/destinations/bali.jpg", latitude: -6.208, longitude: 106.846 },
+  { slug: "kuala-lumpur", nameVi: "Kuala Lumpur", nameEn: "Kuala Lumpur", countryCode: "MY", region: "Federal", descriptionVi: "Tháp đôi Petronas và street food.", descriptionEn: "Petronas Towers and street food capital.", heroImageUrl: "/images/destinations/singapore.jpg", latitude: 3.139, longitude: 101.687 },
+  { slug: "hong-kong", nameVi: "Hồng Kông", nameEn: "Hong Kong", countryCode: "HK", region: "Pearl River", descriptionVi: "Skyline cảng Victoria, dim sum.", descriptionEn: "Victoria Harbour skyline and dim sum.", heroImageUrl: "/images/destinations/tokyo.jpg", latitude: 22.319, longitude: 114.169 },
+  { slug: "taipei", nameVi: "Đài Bắc", nameEn: "Taipei", countryCode: "TW", region: "North Taiwan", descriptionVi: "Night market, Tamsui và văn hóa Đài.", descriptionEn: "Night markets and modern Taiwanese culture.", heroImageUrl: "/images/destinations/seoul.jpg", latitude: 25.033, longitude: 121.565 },
+  { slug: "sydney", nameVi: "Sydney", nameEn: "Sydney", countryCode: "AU", region: "NSW", descriptionVi: "Opera House, bãi biển Bondi.", descriptionEn: "Opera House and Bondi Beach.", heroImageUrl: "/images/destinations/paris.jpg", latitude: -33.869, longitude: 151.209 },
+  { slug: "dubai", nameVi: "Dubai", nameEn: "Dubai", countryCode: "AE", region: "UAE", descriptionVi: "Siêu đô thị sa mạc, Burj Khalifa.", descriptionEn: "Desert metropolis and Burj Khalifa.", heroImageUrl: "/images/destinations/singapore.jpg", latitude: 25.205, longitude: 55.271 },
+  { slug: "london", nameVi: "London", nameEn: "London", countryCode: "GB", region: "England", descriptionVi: "Thủ đô Anh — bảo tàng, Big Ben, West End.", descriptionEn: "Museums, Big Ben, and West End.", heroImageUrl: "/images/destinations/paris.jpg", latitude: 51.507, longitude: -0.128 },
+  { slug: "rome", nameVi: "Rome", nameEn: "Rome", countryCode: "IT", region: "Lazio", descriptionVi: "Colosseum, Vatican và pasta.", descriptionEn: "Eternal city of ruins and pasta.", heroImageUrl: "/images/destinations/paris.jpg", latitude: 41.903, longitude: 12.496 },
 ];
+
+/** Map destination slug → existing on-disk image basename (hotels/tours/destinations). */
+function imageBaseFor(dest: { slug: string; heroImageUrl: string }) {
+  const m = dest.heroImageUrl.match(/\/destinations\/([^/]+)\.jpe?g$/i);
+  if (m?.[1]) return m[1];
+  return dest.slug;
+}
 
 const hotelNames = [
   "Marina Bay Suites",
@@ -279,6 +309,7 @@ async function main() {
   await prisma.tour.deleteMany();
   await prisma.flight.deleteMany();
   await prisma.transport.deleteMany();
+  await prisma.promo.deleteMany();
   await prisma.destination.deleteMany();
 
   const destRows = [];
@@ -288,10 +319,11 @@ async function main() {
 
   let hotelCount = 0;
   for (const dest of destRows) {
-    const n = dest.countryCode === "VN" ? 3 : 2;
+    // Dense marketplace: ≥3–4 hotels per destination (targets ≥120 total)
+    const n = dest.countryCode === "VN" ? 4 : 3;
+    const imgBase = imageBaseFor(dest);
     for (let i = 0; i < n; i++) {
       const stars = 3 + (i % 3);
-      // Spread prices so home hotel grid never looks copy-pasted
       const slugMix =
         [...dest.slug].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 17;
       const price =
@@ -303,17 +335,14 @@ async function main() {
       const hotel = await prisma.hotel.create({
         data: {
           slug: `${dest.slug}-hotel-${i + 1}`,
-          name: `${hotelNames[(i + dest.slug.charCodeAt(0)) % hotelNames.length]} ${dest.nameEn}`,
+          name: `${hotelNames[(i + dest.slug.charCodeAt(0) + hotelCount) % hotelNames.length]} ${dest.nameEn}`,
           stars,
           priceFromVnd: price,
           destinationId: dest.id,
           descriptionVi: `Khách sạn ${stars}★ tại ${dest.nameVi} — gần trung tâm, phù hợp cặp đôi & gia đình.`,
           descriptionEn: `${stars}-star stay in ${dest.nameEn} — central location for couples & families.`,
           images: [
-            // Destination-specific hotel asset first (not the dest hero landscape)
-            i === 0
-              ? `/images/hotels/${dest.slug}.jpg`
-              : `/images/hotels/${dest.slug}-2.jpg`,
+            i % 2 === 0 ? `/images/hotels/${imgBase}.jpg` : `/images/hotels/${imgBase}-2.jpg`,
             dest.heroImageUrl,
             "/images/categories/hotels.jpg",
           ],
@@ -430,7 +459,8 @@ async function main() {
 
   let tourCount = 0;
   for (const dest of destRows) {
-    const packs =
+    const imgBase = imageBaseFor(dest);
+    const basePacks =
       tourPacks[dest.slug] ??
       ([
         {
@@ -445,7 +475,26 @@ async function main() {
           titleEn: `${dest.nameEn} 3D2N journey`,
           price: dest.countryCode === "VN" ? 2_800_000 + tourCount * 50_000 : 6_500_000 + tourCount * 80_000,
         },
-      ] as const);
+      ] as Array<{ days: number; titleVi: string; titleEn: string; price: number }>);
+
+    // Ensure ≥3 tours per destination for density (targets ≥80 total)
+    const packs = [...basePacks];
+    if (!packs.some((p) => p.days === 2)) {
+      packs.push({
+        days: 2,
+        titleVi: `Cuối tuần tại ${dest.nameVi} 2N1Đ`,
+        titleEn: `${dest.nameEn} weekend 2D1N`,
+        price: dest.countryCode === "VN" ? 1_650_000 + tourCount * 21_000 : 4_200_000 + tourCount * 55_000,
+      });
+    }
+    if (packs.length < 3) {
+      packs.push({
+        days: 4,
+        titleVi: `Deep dive ${dest.nameVi} 4 ngày`,
+        titleEn: `${dest.nameEn} deep dive 4 days`,
+        price: dest.countryCode === "VN" ? 4_200_000 + tourCount * 40_000 : 9_800_000 + tourCount * 70_000,
+      });
+    }
 
     for (const v of packs) {
       await prisma.tour.create({
@@ -459,8 +508,7 @@ async function main() {
           descriptionVi: `${v.titleVi}. Hướng dẫn viên địa phương, đón trả khách sạn khu vực trung tâm ${dest.nameVi}.`,
           descriptionEn: `${v.titleEn}. Local guide, hotel pickup around central ${dest.nameEn}.`,
           images: [
-            // Tour activity photo first, destination landscape second
-            `/images/tours/${dest.slug}.jpg`,
+            `/images/tours/${imgBase}.jpg`,
             dest.heroImageUrl,
             "/images/categories/tours.jpg",
           ],
@@ -468,6 +516,68 @@ async function main() {
       });
       tourCount++;
     }
+  }
+
+  // Data-driven home promos (UI must not hard-code product titles)
+  const promoSeeds = [
+    {
+      slug: "ha-long-cruise",
+      titleVi: "Du thuyền Hạ Long đẳng cấp",
+      titleEn: "Ha Long premium cruise",
+      badgeVi: "Giảm đến 30%",
+      badgeEn: "Up to 30% off",
+      badgeTone: "error",
+      imageUrl: "/images/promo/01-ha-long.jpg",
+      hrefPath: "/destinations/ha-long",
+      sortOrder: 1,
+    },
+    {
+      slug: "hoi-an-lanterns",
+      titleVi: "Hội An — Mùa lồng đèn lung linh",
+      titleEn: "Hoi An lantern nights",
+      badgeVi: "Combo khách sạn + vé",
+      badgeEn: "Hotel + flight combo",
+      badgeTone: "cta",
+      imageUrl: "/images/promo/02-hoi-an.jpg",
+      hrefPath: "/destinations/hoi-an",
+      sortOrder: 2,
+    },
+    {
+      slug: "da-nang-beach",
+      titleVi: "Đà Nẵng biển Mỹ Khê",
+      titleEn: "Da Nang My Khe beach",
+      badgeVi: "Deal cuối tuần",
+      badgeEn: "Weekend deal",
+      badgeTone: "info",
+      imageUrl: "/images/promo/03-da-nang.jpg",
+      hrefPath: "/destinations/da-nang",
+      sortOrder: 3,
+    },
+    {
+      slug: "sapa-clouds",
+      titleVi: "Sapa săn mây Tây Bắc",
+      titleEn: "Sapa cloud hunting",
+      badgeVi: "Tour 2N1Đ",
+      badgeEn: "2D1N tour",
+      badgeTone: "cta",
+      imageUrl: "/images/promo/04-sapa.jpg",
+      hrefPath: "/destinations/sapa",
+      sortOrder: 4,
+    },
+    {
+      slug: "phu-quoc-island",
+      titleVi: "Phú Quốc — Đảo ngọc",
+      titleEn: "Phu Quoc pearl island",
+      badgeVi: "Resort sale",
+      badgeEn: "Resort sale",
+      badgeTone: "error",
+      imageUrl: "/images/destinations/phu-quoc.jpg",
+      hrefPath: "/destinations/phu-quoc",
+      sortOrder: 5,
+    },
+  ];
+  for (const p of promoSeeds) {
+    await prisma.promo.create({ data: { ...p, active: true } });
   }
 
   const routes: Array<[string, string, string]> = [
@@ -559,6 +669,7 @@ async function main() {
     }
   }
 
+  const promoCount = await prisma.promo.count();
   console.log(
     JSON.stringify({
       destinations: destRows.length,
@@ -566,6 +677,7 @@ async function main() {
       tours: tourCount,
       flights: flightCount,
       transports: transportCount,
+      promos: promoCount,
     }),
   );
 }

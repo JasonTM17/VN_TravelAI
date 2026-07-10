@@ -15,7 +15,7 @@ export default async function ExplorePage({
 
   let destinations: Awaited<ReturnType<typeof api.listDestinations>>["data"] = [];
   try {
-    destinations = (await api.listDestinations()).data ?? [];
+    destinations = (await api.listDestinations({ limit: 100 })).data ?? [];
   } catch {
     destinations = [];
   }

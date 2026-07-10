@@ -4,11 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { PromoSlide } from "@/lib/gallery-slides";
+import type { PromoSlideView } from "@/lib/promo-map";
 import { nextSlideIndex, prevSlideIndex } from "@/lib/gallery-slides";
 import { cn } from "@/lib/utils";
 
-export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
+export function PromoCarousel({ slides }: { slides: PromoSlideView[] }) {
   const [index, setIndex] = useState(0);
   if (slides.length === 0) return null;
   const safe = ((index % slides.length) + slides.length) % slides.length;
@@ -59,7 +59,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
   );
 }
 
-function PromoCard({ p, className }: { p: PromoSlide; className?: string }) {
+function PromoCard({ p, className }: { p: PromoSlideView; className?: string }) {
   return (
     <Link
       href={p.href}

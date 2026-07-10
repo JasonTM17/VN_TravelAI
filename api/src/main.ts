@@ -130,9 +130,12 @@ async function main() {
     return { success: true, data: rows };
   });
 
+  // Reindex soon after boot so expanded seed is searchable (Meili may lag seed).
   setTimeout(() => {
-    reindexAll(meili).catch((err) => app.log.warn({ err }, "meili reindex skipped"));
-  }, 5000);
+    reindexAll(meili)
+      .then((counts) => app.log.info({ counts }, "meili reindex complete"))
+      .catch((err) => app.log.warn({ err }, "meili reindex skipped"));
+  }, 3_000);
 
   await app.listen({ port: config.PORT, host: "0.0.0.0" });
   app.log.info(`api listening on :${config.PORT}`);
