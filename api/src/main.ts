@@ -62,10 +62,29 @@ async function main() {
   await wishlistRoutes(app, requireAuth);
   await itineraryRoutes(app, requireAuth);
 
-  app.post("/v1/admin/reindex", async (_req, reply) => {
+  // Admin reindex: require Bearer JWT (user) AND matching admin token header.
+  // Public reindex was an open DoS/abuse surface on Meilisearch.
+  app.post("/v1/admin/reindex", async (req, reply) => {
+    const user = await requireAuth(req, reply);
+    if (!user) return;
+    const adminToken = process.env.ADMIN_REINDEX_TOKEN;
+    const provided = req.headers["x-admin-token"];
+    if (
+      !adminToken ||
+      typeof provided !== "string" ||
+      provided.length < 16 ||
+      provided !== adminToken
+    ) {
+      return reply.status(403).send({
+        type: "about:blank",
+        title: "Forbidden",
+        status: 403,
+        detail: "Admin reindex requires X-Admin-Token",
+      });
+    }
     try {
       await reindexAll(meili);
-      return { success: true, data: { reindexed: true } };
+      return { success: true, data: { reindexed: true, by: user.id } };
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ success: false, error: "reindex failed" });
