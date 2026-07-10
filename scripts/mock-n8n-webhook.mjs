@@ -76,8 +76,9 @@ const server = http.createServer(async (req, res) => {
     model: deepseekModel,
     baseUrl: deepseekBase,
     timeoutMs: 45_000,
-    // Read-only catalog tools against internal API when available
+    // Read-only catalog tools + Meili RAG against internal API when available
     enableTools: true,
+    enableRag: true,
     apiBaseUrl: process.env.API_BASE_URL || process.env.API_INTERNAL_URL || "http://api:3001",
     maxToolRounds: 3,
   });

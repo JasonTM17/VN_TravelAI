@@ -20,6 +20,10 @@ const envSchema = z.object({
     .default("http://localhost:3000,http://127.0.0.1:3000,http://localhost:53000,http://127.0.0.1:53000"),
   /** When set, /metrics requires Bearer or X-Metrics-Token. Empty = open (local). */
   METRICS_TOKEN: z.string().optional().default(""),
+  /** Optional: enable direct DeepSeek streaming from ai service */
+  DEEPSEEK_API_KEY: z.string().optional().default(""),
+  DEEPSEEK_BASE_URL: z.string().default("https://api.deepseek.com"),
+  DEEPSEEK_MODEL: z.string().default("deepseek-v4-flash"),
   LOG_LEVEL: z.string().default("info"),
 });
 

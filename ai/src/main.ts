@@ -11,6 +11,8 @@ import { callN8nWebhook, TRAVEL_CHAT_WEBHOOK_TIMEOUT_MS } from "./lib/n8n.js";
 import { degradedChatReply, degradedItinerary } from "./lib/degraded.js";
 import { requireHmac } from "./lib/hmac-guard.js";
 import { metricsAuthorized } from "./lib/metrics-guard.js";
+import { retrieveCatalogContext } from "./lib/catalog-rag.js";
+import { streamDeepSeekChat, streamTextChunks } from "./lib/deepseek-stream.js";
 
 const chatSchema = z.object({
   message: z.string().min(1).max(4000),
@@ -191,6 +193,50 @@ async function main() {
         degraded: false,
       },
     };
+  });
+
+  /** SSE chat: RAG context + DeepSeek stream when key set; else chunked degraded. */
+  app.post("/v1/chat/stream", async (req, reply) => {
+    const user = await requireAuth(req, reply);
+    if (!user) return;
+    const parsed = chatSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        type: "about:blank",
+        title: "Validation error",
+        status: 400,
+        detail: parsed.error.flatten(),
+      });
+    }
+    const conversationId = parsed.data.conversationId ?? randomUUID();
+    const catalogCtx = await retrieveCatalogContext(parsed.data.message, config.API_BASE_URL);
+    const system = [
+      "You are TravelAI Concierge for Vietnam travel. Prefer grounded catalog facts when provided.",
+      "Never claim real card charges. Answer in the user's language.",
+      catalogCtx,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const key = config.DEEPSEEK_API_KEY?.trim();
+    if (key && !config.AI_DEGRADED_MODE) {
+      try {
+        const streamed = await streamDeepSeekChat({
+          apiKey: key,
+          baseUrl: config.DEEPSEEK_BASE_URL,
+          model: config.DEEPSEEK_MODEL,
+          system,
+          userMessage: parsed.data.message,
+          reply,
+          conversationId,
+        });
+        if (streamed.ok) return;
+      } catch {
+        /* fall through degraded stream */
+      }
+    }
+    const d = degradedChatReply(parsed.data.message);
+    streamTextChunks(reply, conversationId, d.reply, true);
   });
 
   app.post("/v1/itineraries", async (req, reply) => {

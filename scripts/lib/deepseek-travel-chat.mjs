@@ -9,6 +9,7 @@ import {
   executeCatalogTool,
 } from "./deepseek-tools.mjs";
 import { frameUserMessage, UNTRUSTED_USER_SYSTEM_NOTE } from "./prompt-guard.mjs";
+import { retrieveCatalogContext } from "./catalog-rag.mjs";
 
 export const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 export const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
@@ -71,10 +72,17 @@ export function isLegacyTemplateReply(reply) {
  * @param {string} userMessage
  * @returns {{ role: string, content: string }[]}
  */
-export function buildChatMessages(userMessage) {
+export function buildChatMessages(userMessage, catalogContext) {
   const framed = frameUserMessage(userMessage, { maxLen: 4000 });
+  const rag =
+    catalogContext && String(catalogContext).trim()
+      ? `\n\n${String(catalogContext).trim()}`
+      : "";
   return [
-    { role: "system", content: `${TRAVEL_SYSTEM_PROMPT}\n\n${UNTRUSTED_USER_SYSTEM_NOTE}` },
+    {
+      role: "system",
+      content: `${TRAVEL_SYSTEM_PROMPT}\n\n${UNTRUSTED_USER_SYSTEM_NOTE}${rag}`,
+    },
     { role: "user", content: framed.text },
   ];
 }
@@ -92,6 +100,10 @@ export function buildChatMessages(userMessage) {
  *   enableTools?: boolean,
  *   apiBaseUrl?: string,
  *   maxToolRounds?: number,
+ *   enableRag?: boolean,
+ *   catalogContext?: string,
+ *   onToken?: (chunk: string) => void,
+ *   stream?: boolean,
  * }} opts
  * @returns {Promise<{ ok: true, reply: string, model: string, toolRounds?: number } | { ok: false, reason: string }>}
  */
@@ -115,13 +127,94 @@ export async function callDeepSeekTravelChat(opts) {
   const apiBaseUrl = String(opts.apiBaseUrl || process.env.API_BASE_URL || "").replace(/\/$/, "");
   const maxToolRounds = Math.min(Math.max(opts.maxToolRounds ?? 3, 0), 3);
 
+  let catalogContext = opts.catalogContext;
+  if (opts.enableRag !== false && apiBaseUrl && !catalogContext) {
+    const rag = await retrieveCatalogContext(opts.message, {
+      apiBaseUrl,
+      fetchImpl,
+    });
+    if (rag.ok) catalogContext = rag.context;
+  }
+
   /** @type {{ role: string, content?: string, tool_calls?: unknown, tool_call_id?: string, name?: string }[]} */
-  let messages = buildChatMessages(opts.message);
+  let messages = buildChatMessages(opts.message, catalogContext);
   let toolRounds = 0;
+  const wantStream = Boolean(opts.stream && typeof opts.onToken === "function");
+  // Streaming path: RAG context + single completion stream (tools off for simpler SSE)
+  const toolsThisCall = enableTools && !wantStream;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
+    if (wantStream) {
+      const payload = {
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 900,
+        thinking: { type: "disabled" },
+        stream: true,
+      };
+      const res = await fetchImpl(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        return { ok: false, reason: `deepseek_http_${res.status}` };
+      }
+      const body = res.body;
+      if (!body || typeof body.getReader !== "function") {
+        // Non-stream response fallback
+        const rawText = await res.text();
+        let json;
+        try {
+          json = JSON.parse(rawText);
+        } catch {
+          return { ok: false, reason: "deepseek_non_json_stream" };
+        }
+        const reply = extractReplyFromDeepSeek(json);
+        if (!reply) return { ok: false, reason: "deepseek_empty_or_template_reply" };
+        opts.onToken?.(reply);
+        return { ok: true, reply, model, toolRounds: 0 };
+      }
+      const reader = body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let full = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split("\n");
+        buf = parts.pop() ?? "";
+        for (const line of parts) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const data = trimmed.slice(5).trim();
+          if (data === "[DONE]") continue;
+          try {
+            const json = JSON.parse(data);
+            const delta = json?.choices?.[0]?.delta?.content;
+            if (typeof delta === "string" && delta) {
+              full += delta;
+              opts.onToken?.(delta);
+            }
+          } catch {
+            /* ignore partial */
+          }
+        }
+      }
+      if (!full || isLegacyTemplateReply(full)) {
+        return { ok: false, reason: "deepseek_empty_or_template_reply" };
+      }
+      return { ok: true, reply: full, model, toolRounds: 0 };
+    }
+
     while (true) {
       /** @type {Record<string, unknown>} */
       const payload = {
@@ -131,7 +224,7 @@ export async function callDeepSeekTravelChat(opts) {
         max_tokens: 900,
         thinking: { type: "disabled" },
       };
-      if (enableTools && toolRounds < maxToolRounds) {
+      if (toolsThisCall && toolRounds < maxToolRounds) {
         payload.tools = CATALOG_TOOLS;
         payload.tool_choice = "auto";
       }
@@ -159,7 +252,7 @@ export async function callDeepSeekTravelChat(opts) {
       }
 
       const choiceMsg = json?.choices?.[0]?.message ?? {};
-      const toolCalls = enableTools ? extractToolCalls(choiceMsg) : [];
+      const toolCalls = toolsThisCall ? extractToolCalls(choiceMsg) : [];
       if (toolCalls.length > 0 && toolRounds < maxToolRounds) {
         toolRounds += 1;
         messages = [
