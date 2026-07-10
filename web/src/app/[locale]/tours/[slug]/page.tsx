@@ -17,7 +17,8 @@ export async function generateMetadata({
   try {
     const { data } = await api.getTour(slug);
     const title = locale === "en" ? data.titleEn : data.titleVi;
-    return { title, description: data.descriptionEn };
+    const description = locale === "en" ? data.descriptionEn : data.descriptionVi;
+    return { title, description };
   } catch {
     return { title: "Tour" };
   }
@@ -58,6 +59,7 @@ export default async function TourDetailPage({
           alt={title}
           fallback="/images/categories/tours.jpg"
           priority
+          locale={locale}
         />
         <div className="animate-fade-in-up">
           <h1 className="text-3xl font-bold">

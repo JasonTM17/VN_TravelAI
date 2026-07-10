@@ -11,12 +11,16 @@ import { getDict, isLocale, type Locale } from "@/lib/i18n";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; locale: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   try {
     const { data } = await api.getHotel(slug);
-    return { title: data.name, description: data.descriptionEn ?? data.name };
+    const description =
+      locale === "en"
+        ? data.descriptionEn ?? data.name
+        : data.descriptionVi ?? data.name;
+    return { title: data.name, description };
   } catch {
     return { title: "Hotel" };
   }
@@ -59,6 +63,7 @@ export default async function HotelDetailPage({
           alt={hotel.name}
           fallback="/images/categories/hotels.jpg"
           priority
+          locale={locale}
         />
         <div className="animate-fade-in-up">
           <h1 className="text-3xl font-bold">
@@ -82,7 +87,7 @@ export default async function HotelDetailPage({
           </div>
           {hotel.reviews?.length ? (
             <div className="mt-8 space-y-3">
-              <h2 className="font-semibold">Reviews</h2>
+              <h2 className="font-semibold">{t.common.reviews}</h2>
               {hotel.reviews.map((r, i) => (
                 <div key={i} className="rounded-xl border border-border bg-white p-3 text-sm">
                   <div className="font-medium">{r.author} · {"★".repeat(r.rating)}</div>

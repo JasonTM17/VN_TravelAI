@@ -36,7 +36,7 @@ export function WishlistClient({ locale }: { locale: Locale }) {
     return (
       <EmptyState
         title={t.nav.login}
-        description={locale === "en" ? "Log in to see your wishlist." : "Đăng nhập để xem danh sách yêu thích."}
+        description={t.catalog.wishlistLogin}
         ctaHref={`/${locale}/login`}
         ctaLabel={t.nav.login}
       />
@@ -46,11 +46,7 @@ export function WishlistClient({ locale }: { locale: Locale }) {
     return (
       <EmptyState
         title={t.empty.title}
-        description={
-          locale === "en"
-            ? "Save hotels or tours from detail pages."
-            : "Lưu khách sạn hoặc tour từ trang chi tiết."
-        }
+        description={t.catalog.wishlistEmpty}
         ctaHref={`/${locale}/hotels`}
         ctaLabel={t.nav.hotels}
       />
@@ -94,7 +90,7 @@ export function WishlistClient({ locale }: { locale: Locale }) {
                 setItems((prev) => prev.filter((x) => x.id !== item.id));
               }}
             >
-              {locale === "en" ? "Remove" : "Xóa"}
+              {t.common.remove}
             </button>
           </div>
         );

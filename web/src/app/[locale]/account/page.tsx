@@ -22,11 +22,7 @@ export default async function AccountPage({
       <h1 className="text-3xl font-bold">
         <span className="gradient-text">{t.auth.accountTitle}</span>
       </h1>
-      <p className="mt-2 text-sm text-muted">
-        {locale === "en"
-          ? "Manage security settings for your TravelAI account."
-          : "Quản lý bảo mật tài khoản TravelAI của bạn."}
-      </p>
+      <p className="mt-2 text-sm text-muted">{t.auth.accountSubtitle}</p>
       <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-elevated">
         <ChangePasswordForm locale={locale} />
       </div>
