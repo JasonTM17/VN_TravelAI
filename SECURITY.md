@@ -24,25 +24,51 @@ You should receive an acknowledgement within 72 hours.
 ### Auth
 
 - Production JWT uses **Ed25519** with JWKS at identity `/.well-known/jwks.json`.
+- Missing PEMs in production (or `JWT_REQUIRE_PEM=true`) **fail-closed** — no ephemeral prod keys.
+- Dual key slots (primary + secondary) for rotation.
 - Refresh tokens are opaque, stored hashed, and rotate on use.
 - Account lockout pairs with Redis rate limiting.
 
+### Web session residual
+
+- Browser currently stores access + refresh tokens in **localStorage**.
+- XSS can exfiltrate tokens — treat as known residual; cookie BFF is product follow-up.
+
+### CORS & headers
+
+- `CORS_ORIGINS` allowlist on api, identity, and ai (not `origin: true`).
+- Web sets CSP and baseline security headers (`web/next.config.ts`). CSP still includes `unsafe-eval` for Next tooling.
+
+### Search
+
+- Meilisearch filter values are sanitized (`api/src/lib/meili-filter.ts`) before interpolation.
+
 ### AI / webhooks
 
-- Outbound calls from `ai` → n8n are HMAC-SHA256 signed (`X-Signature-SHA256`).
-- Invalid signatures must return 401.
-- Degraded mode when n8n is unavailable (no stack traces to clients).
+- Outbound webhooks HMAC-SHA256 signed (`N8N_HMAC_SECRET`).
+- Inbound callback verifies signature against **raw body** bytes.
+- Chat endpoints require JWT; per-user rate limits on Redis (fail-open if Redis down).
+- No tool-calling surface yet (reduces agent tool-abuse class until tools land).
 
-### PII & travel data
+### Demo seed
 
-- Bookings and profiles contain PII — treat logs carefully (no raw passport data in logs).
-- Prefer request IDs over logging full request bodies.
+- Demo admin user only when `SEED_DEMO_USER=true` (local default in `.env.example`).
+- Production must set `SEED_DEMO_USER=false` and `RUN_SEED=false`.
 
-### Secrets
+### Payment
 
-- Never commit `.env`, PEM keys, or Docker Hub tokens.
-- CI requires `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` as GitHub Actions secrets.
+- Payment is **mock only** — no card data processed.
 
-### Scanning
+### Containers
 
-CI runs Trivy, CodeQL, and Gitleaks on PRs and `main`.
+- Multi-stage images, non-root UID 65532, healthchecks, frozen lockfiles.
+- Do not bake secrets into images; inject at runtime.
+
+### Dependency / secret scanning
+
+Workflows present: Gitleaks, Trivy, CodeQL (see `.github/workflows/`).
+
+## More detail
+
+- [docs/security/overview.md](docs/security/overview.md)
+- [docs/getting-started/environment-variables.md](docs/getting-started/environment-variables.md)

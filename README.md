@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Lên kế hoạch chuyến đi thông minh — Việt Nam &amp; Thế giới</strong><br/>
-  Traveloka-style marketplace + AI concierge (DeepSeek V4 Flash) · monorepo Docker
+  Marketplace du lịch kiểu Traveloka + AI concierge (DeepSeek V4 Flash) · monorepo Docker
 </p>
 
 <p align="center">
@@ -20,6 +20,36 @@
   <a href="https://github.com/JasonTM17/VN_TravelAI/releases"><img src="https://img.shields.io/github/v/release/JasonTM17/VN_TravelAI?include_prereleases&label=release" alt="Release" /></a>
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
 </p>
+
+<p align="center">
+  <strong>Project status:</strong> MVP demo + production <em>hardening baseline</em> trên monorepo service-split.<br/>
+  Payment = <strong>MOCK</strong> · AI chat = <strong>PARTIAL</strong> (DeepSeek live khi có key; không RAG/tool-calling) · Cloud deploy target = <strong>UNKNOWN</strong>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#screenshots">Screenshots</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#ai--deepseek">AI</a> ·
+  <a href="#releases--packages">Releases</a> ·
+  <a href="docs/README.md">Documentation</a>
+</p>
+
+---
+
+## Điểm nổi bật
+
+| Highlight | Status |
+|-----------|--------|
+| Live catalog (seed Postgres) + promo carousel | COMPLETE |
+| Hotels / tours list, detail, multi-image gallery | COMPLETE |
+| Meilisearch unified search | COMPLETE |
+| Ed25519 JWT + dual JWKS identity + client refresh | COMPLETE |
+| Booking lifecycle + **mock** pay / cancel state machine | COMPLETE + MOCK pay |
+| Global chatbot + AI itinerary planner (DeepSeek path) | PARTIAL |
+| Admin reindex + audit | PARTIAL |
+| Responsive mobile web | COMPLETE (demo UX) |
+| Docker Compose multi-service · Hub + GHCR · Releases | COMPLETE tooling |
 
 ---
 
@@ -41,7 +71,7 @@
 |:---:|:---:|
 | ![AI](docs/media/08-ai-planner.png) | ![Mobile](docs/media/10-mobile-gallery.png) |
 
-More assets: [`docs/media/`](docs/media/README.md)
+More assets: [`docs/media/`](docs/media/README.md) (gồm `05-explore`, `09-mobile-home`, gallery slides, frames)
 
 ---
 
@@ -49,30 +79,17 @@ More assets: [`docs/media/`](docs/media/README.md)
 
 - **Catalog (seeded Postgres)**: 40+ destinations · 140+ hotels · 120+ tours · flights & transport · multi-image galleries from DB `images[]`
 - **Home promos**: data-driven `GET /v1/promos` (not hard-coded product cards)
-- **Search**: Meilisearch reindex after boot
-- **Auth**: Ed25519 JWT + dual JWKS (identity)
-- **AI concierge**: chat + itinerary via n8n/HMAC; **DeepSeek V4 Flash** when `DEEPSEEK_API_KEY` is set
+- **Search**: Meilisearch reindex after boot / admin
+- **Auth**: Ed25519 JWT + dual JWKS (identity); web refresh on 401
+- **AI concierge**: chat + itinerary via n8n/HMAC; **DeepSeek V4 Flash** when `DEEPSEEK_API_KEY` is set; degraded fallback otherwise
 - **Admin**: `/vi/admin` reindex + audit log (`role=admin`)
 - **Mobile web**: responsive navbar, promo carousel, touch targets
 - **Containers**: multi-service Docker Compose · **Docker Hub** + **GitHub Packages (GHCR)** · tagged **Releases**
 
-## Releases & packages
+> [!NOTE]
+> Booking payment là **mock** (không PSP). Transport browse-only. Không tích hợp Traveloka partner APIs.
 
-| Surface | Where |
-|---------|--------|
-| **Releases** | [github.com/JasonTM17/VN_TravelAI/releases](https://github.com/JasonTM17/VN_TravelAI/releases) — created by `.github/workflows/release.yml` on `v*` tags |
-| **Packages (GHCR)** | Repo → Packages, or `ghcr.io/jasontm17/travelai-{web,api,identity,ai}` |
-| **Docker Hub** | `nguyenson1710/travelai-*` (needs repo secrets `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`) |
-
-```bash
-# GitHub Container Registry (shows under repo Packages)
-docker pull ghcr.io/jasontm17/travelai-web:latest
-docker pull ghcr.io/jasontm17/travelai-api:latest
-docker pull ghcr.io/jasontm17/travelai-identity:latest
-docker pull ghcr.io/jasontm17/travelai-ai:latest
-```
-
-Publish flow: push `main` → `docker-publish` builds/pushes Hub + GHCR · tag `v0.1.0` or Actions → **release** workflow creates GitHub Release.
+---
 
 ## Architecture
 
@@ -97,7 +114,7 @@ flowchart LR
 | identity | [`identity/`](identity/README.md) | **53002** | `ghcr.io/jasontm17/travelai-identity` | `nguyenson1710/travelai-identity` |
 | ai | [`ai/`](ai/README.md) | **53003** | `ghcr.io/jasontm17/travelai-ai` | `nguyenson1710/travelai-ai` |
 
-Contract: [`docs/openapi.yaml`](docs/openapi.yaml) · ADRs: [`docs/adr/`](docs/adr/) · Design: [`.stitch/`](.stitch/)
+Contract: [`docs/openapi.yaml`](docs/openapi.yaml) · Architecture: [`docs/system-architecture.md`](docs/system-architecture.md) · ADRs: [`docs/adr/`](docs/adr/) · Docs index: [`docs/README.md`](docs/README.md)
 
 > SSR inside Docker uses `API_INTERNAL_URL=http://api:3001` while the browser uses `NEXT_PUBLIC_*` host ports.
 
@@ -121,7 +138,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 | http://localhost:53002/healthz | Identity |
 | http://localhost:53003/healthz | AI |
 
-**Demo user** (local only — see `.env.example`):
+**Demo user** (local only — see `.env.example`; requires `SEED_DEMO_USER=true`):
 
 - Email: `demo@travelai.local`
 - Password: `DemoTravelAI1!`
@@ -133,6 +150,8 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 # Live chat (optional DeepSeek key in .env)
 node scripts/smoke-chat.mjs
 ```
+
+Native (không Docker full stack): xem [`docs/getting-started/local-setup.md`](docs/getting-started/local-setup.md).
 
 ### DeepSeek live chat
 
@@ -148,24 +167,121 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --force-r
 ./scripts/reload-deepseek-chat.ps1
 ```
 
+Chi tiết AI: [`docs/ai/deepseek-chatbot.md`](docs/ai/deepseek-chatbot.md).
+
+---
+
+## AI & DeepSeek
+
+| Capability | Status |
+|------------|--------|
+| Chat Completions via webhook + HMAC | COMPLETE path |
+| Model default `deepseek-v4-flash` | COMPLETE config |
+| Degraded fallback without key | COMPLETE |
+| Streaming / RAG / tool-calling / chat DB | NOT IMPLEMENTED |
+
+---
+
+## Security (tóm tắt)
+
+- Production JWT: Ed25519 PEM **fail-closed** · dual JWKS  
+- CORS allowlist · Meili filter sanitize · inbound HMAC **raw body**  
+- Demo admin seed **gated** (`SEED_DEMO_USER`)  
+- Residual: tokens trong `localStorage`; metrics public; mock pay  
+
+Chi tiết: [`docs/security/overview.md`](docs/security/overview.md) · [`SECURITY.md`](SECURITY.md)
+
+---
+
+## Testing
+
+```bash
+# Unit (mỗi service)
+cd identity && node ./node_modules/vitest/vitest.mjs run
+# OpenAPI
+npx --yes @redocly/cli@1 lint docs/openapi.yaml --config redocly.yaml
+# E2E local (stack up)
+cd e2e && pnpm test
+```
+
+CI: unit hard-fail · lint advisory · e2e khi `E2E_ENABLED=true`.  
+Xem [`docs/testing/overview.md`](docs/testing/overview.md).
+
+---
+
+## Releases & packages
+
+| Surface | Where |
+|---------|--------|
+| **Releases** | [github.com/JasonTM17/VN_TravelAI/releases](https://github.com/JasonTM17/VN_TravelAI/releases) — created by `.github/workflows/release.yml` on `v*` tags |
+| **Packages (GHCR)** | Repo → Packages, or `ghcr.io/jasontm17/travelai-{web,api,identity,ai}` |
+| **Docker Hub** | `nguyenson1710/travelai-*` (needs repo secrets `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`) |
+
+```bash
+# GitHub Container Registry (shows under repo Packages)
+docker pull ghcr.io/jasontm17/travelai-web:latest
+docker pull ghcr.io/jasontm17/travelai-api:latest
+docker pull ghcr.io/jasontm17/travelai-identity:latest
+docker pull ghcr.io/jasontm17/travelai-ai:latest
+```
+
+Publish flow: push `main` → `docker-publish` builds/pushes Hub + GHCR · tag `v0.1.0` or Actions → **release** workflow creates GitHub Release.
+
+---
+
+## Documentation
+
+| Doc | Mô tả |
+|-----|--------|
+| [docs/README.md](docs/README.md) | Index đầy đủ |
+| [Getting started](docs/getting-started/local-setup.md) | Docker + native |
+| [Environment variables](docs/getting-started/environment-variables.md) | Inventory (no secrets) |
+| [System architecture](docs/system-architecture.md) | Service map |
+| [API overview](docs/api/overview.md) | HTTP inventory |
+| [Database](docs/database/overview.md) | Prisma models |
+| [Docker](docs/docker/overview.md) | Compose & images |
+| [Deployment](docs/deployment-guide.md) | Local / prod-like |
+| [Troubleshooting](docs/operations/troubleshooting.md) | Runbook dev |
+| [Scout report](docs/reports/vietnam-travel-codebase-scout.md) | Status matrix |
+
 ---
 
 ## Repository layout
 
 ```
 api/          Fastify catalog, booking, promos, admin reindex
-identity/     Auth, JWKS, demo admin user
+identity/     Auth, JWKS, demo admin user (gated)
 ai/           Chat/itinerary orchestrator → HMAC webhook
 web/          Next.js 15 App Router UI
 infra/n8n/    Workflow JSON (travel-chat → DeepSeek)
-docs/         OpenAPI, ADRs, media screenshots
+docs/         OpenAPI, ADRs, media screenshots, guides
 scripts/      Smoke, image audit, DeepSeek helpers
-.stitch/      Design system exports (tracked)
+.stitch/      Design system exports (may be gitignored)
 ```
 
-## Non-goals (MVP)
+---
 
-Real PSP settlement · native Flutter apps · live airline GDS · multi-vendor PMS.
+## Known limitations / Non-goals (MVP)
+
+| Item | Status |
+|------|--------|
+| Real PSP settlement | NOT IMPLEMENTED (mock pay only) |
+| Inventory / overselling control | NOT IMPLEMENTED |
+| Live airline GDS / multi-vendor PMS | OUT_OF_SCOPE |
+| Native Flutter apps | OUT_OF_SCOPE |
+| Traveloka partner integration | OUT_OF_SCOPE |
+| RAG / tool-calling | NOT IMPLEMENTED |
+| Always-on CI e2e | PARTIAL (`E2E_ENABLED`) |
+
+---
+
+## Contributing
+
+Xem [`CONTRIBUTING.md`](CONTRIBUTING.md) — Conventional Commits, không AI co-author trailer, update OpenAPI khi đổi contract.
+
+## Security reporting
+
+Xem [`SECURITY.md`](SECURITY.md) — không mở public issue cho vulnerability.
 
 ## License
 

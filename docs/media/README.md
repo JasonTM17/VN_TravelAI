@@ -2,7 +2,11 @@
 
 Screenshots and demo GIF used in the root [README](../../README.md).
 
-Captured from the local compose stack (`docker-compose.local.yml` ports `53000+`).
+> [!IMPORTANT]
+> Do **not** delete, rename, or move files listed in the root README gallery without updating every reference. Hero GIF and gallery assets are part of the public project presentation.
+
+Captured from the local compose stack (`docker-compose.local.yml` ports `53000+`).  
+Docs index: [../README.md](../README.md).
 
 | File | Description |
 |------|-------------|
