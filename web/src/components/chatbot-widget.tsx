@@ -95,14 +95,32 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     setInput("");
     setLoading(true);
     try {
-      const res = await api.chat(token, trimmed, conversationId);
-      const cid = res.data.conversationId;
+      // Streaming path (SSE) with progressive assistant bubble
+      setMessages((m) => [...m, { role: "ai", text: "" }]);
+      const result = await api.chatStream(token, trimmed, conversationId, (chunk) => {
+        setMessages((m) => {
+          const copy = [...m];
+          const last = copy[copy.length - 1];
+          if (last?.role === "ai") {
+            copy[copy.length - 1] = { ...last, text: last.text + chunk };
+          }
+          return copy;
+        });
+      });
+      const cid = result.conversationId || conversationId || "";
       setConversationId(cid);
-      setMessages((m) => [
-        ...m,
-        { role: "ai", text: res.data.reply, degraded: res.data.degraded },
-      ]);
-      // Persist turn on catalog API (user isolation via JWT)
+      setMessages((m) => {
+        const copy = [...m];
+        const last = copy[copy.length - 1];
+        if (last?.role === "ai") {
+          copy[copy.length - 1] = {
+            role: "ai",
+            text: result.reply || last.text,
+            degraded: result.degraded,
+          };
+        }
+        return copy;
+      });
       try {
         await api.persistChatMessages(token, {
           conversationId: cid,
@@ -110,16 +128,22 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
             { role: "user", content: trimmed },
             {
               role: "assistant",
-              content: res.data.reply,
-              degraded: Boolean(res.data.degraded),
+              content: result.reply,
+              degraded: Boolean(result.degraded),
             },
           ],
         });
       } catch {
-        /* history optional — do not fail chat UX */
+        /* history optional */
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : t.common.error);
+      // remove empty assistant bubble on hard fail
+      setMessages((m) => {
+        const last = m[m.length - 1];
+        if (last?.role === "ai" && !last.text) return m.slice(0, -1);
+        return m;
+      });
     } finally {
       setLoading(false);
     }

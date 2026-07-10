@@ -33,8 +33,12 @@
 | Image Hub/GHCR rebuild | PARTIAL | trigger `docker-publish` when secrets/billing OK |
 | Real PSP | NOT IMPLEMENTED | product decision required |
 | User reviews write | COMPLETE path | POST /v1/reviews + FE form |
-| Hotel soft rooms inventory | COMPLETE path | roomsLeft decrement on pay |
-| RAG / streaming / full PMS calendar | NOT IMPLEMENTED | non-goal / YAGNI |
+| Hotel soft rooms inventory | COMPLETE path | roomsLeft + per-night calendar |
+| Email/notification | COMPLETE path | Notification table + SMTP_URL or log |
+| Chat SSE streaming | COMPLETE path | POST /v1/chat/stream |
+| RAG (Meili retrieval) | COMPLETE path | catalog-rag into LLM context |
+| Full hotel night calendar | COMPLETE path | HotelNightInventory |
+| Real PSP | NOT IMPLEMENTED | product decision |
 
 ## 4. Explicit non-goals
 

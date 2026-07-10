@@ -212,6 +212,75 @@ export const api = {
         body: JSON.stringify({ message, conversationId }),
       },
     ),
+  /**
+   * SSE stream chat. Calls onToken for each chunk; resolves with full reply.
+   */
+  chatStream: async (
+    token: string,
+    message: string,
+    conversationId: string | undefined,
+    onToken: (text: string) => void,
+  ): Promise<{ conversationId: string; reply: string; degraded: boolean }> => {
+    const res = await fetch(`${AI_URL}/v1/chat/stream`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ message, conversationId }),
+      cache: "no-store",
+    });
+    if (!res.ok || !res.body) {
+      const text = await res.text();
+      throw new Error(messageFromErrorBody(text, res.status));
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    let cid = conversationId ?? "";
+    let full = "";
+    let degraded = false;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split("\n");
+      buf = parts.pop() ?? "";
+      for (const line of parts) {
+        const t = line.trim();
+        if (!t.startsWith("data:")) continue;
+        try {
+          const ev = JSON.parse(t.slice(5).trim()) as {
+            type?: string;
+            text?: string;
+            conversationId?: string;
+            reply?: string;
+            degraded?: boolean;
+          };
+          if (ev.type === "meta" && ev.conversationId) cid = ev.conversationId;
+          if (ev.type === "token" && ev.text) {
+            full += ev.text;
+            onToken(ev.text);
+          }
+          if (ev.type === "done") {
+            if (ev.reply) full = ev.reply;
+            degraded = Boolean(ev.degraded);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    return { conversationId: cid, reply: full, degraded };
+  },
+  listNotifications: (token: string) =>
+    request<
+      ApiEnvelope<
+        Array<{ id: string; title: string; body: string; status: string; type: string; createdAt: string }>
+      >
+    >(API_URL, "/v1/notifications", {
+      headers: { authorization: `Bearer ${token}` },
+    }),
   getChatConversation: (token: string, id: string) =>
     request<
       ApiEnvelope<{
