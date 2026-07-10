@@ -78,6 +78,8 @@ model Flight {
   arriveAt     DateTime @map("arrive_at")
   priceVnd     Int      @map("price_vnd")
   cabin        String   @default("economy")
+  /// Soft seat inventory for mock pay (no GDS).
+  seatsLeft    Int      @default(50) @map("seats_left")
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@index([fromCode, toCode])
@@ -136,28 +138,42 @@ enum BookingItemType {
   hotel
   tour
   flight
+  transport
 }
 
 model Booking {
-  id             String          @id @default(uuid()) @db.Uuid
-  userId         String          @map("user_id") @db.Uuid
-  status         BookingStatus   @default(draft)
-  itemType       BookingItemType @map("item_type")
-  itemId         String          @map("item_id") @db.Uuid
-  itemSnapshot   Json            @map("item_snapshot")
-  guests         Int             @default(1)
-  startDate      DateTime        @map("start_date") @db.Date
-  endDate        DateTime?       @map("end_date") @db.Date
-  totalVnd       Int             @map("total_vnd")
-  contactName    String?         @map("contact_name")
-  contactEmail   String?         @map("contact_email")
-  contactPhone   String?         @map("contact_phone")
-  idempotencyKey String?         @unique @map("idempotency_key")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  status         BookingStatus    @default(draft)
+  itemType       BookingItemType  @map("item_type")
+  itemId         String           @map("item_id") @db.Uuid
+  itemSnapshot   Json             @map("item_snapshot")
+  guests         Int              @default(1)
+  startDate      DateTime         @map("start_date") @db.Date
+  endDate        DateTime?        @map("end_date") @db.Date
+  totalVnd       Int              @map("total_vnd")
+  contactName    String?          @map("contact_name")
+  contactEmail   String?          @map("contact_email")
+  contactPhone   String?          @map("contact_phone")
+  idempotencyKey String?          @unique @map("idempotency_key")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  paymentAttempts PaymentAttempt[]
 
   @@index([userId])
   @@map("bookings")
+}
+
+/// Mock payment audit trail (no real PSP).
+model PaymentAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  bookingId String   @map("booking_id") @db.Uuid
+  outcome   String
+  createdAt DateTime @default(now()) @map("created_at")
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("payment_attempts")
 }
 
 enum WishlistItemType {
