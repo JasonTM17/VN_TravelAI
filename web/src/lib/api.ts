@@ -1,4 +1,4 @@
-import { clearSession, getRefreshToken, saveSession } from "./auth-storage";
+import { clearSession, saveSession } from "./auth-storage";
 import { messageFromErrorBody } from "./problem-error";
 import { resolveServiceBaseUrl } from "./service-url";
 
@@ -24,17 +24,17 @@ export type ApiEnvelope<T> = { success: boolean; data: T; meta?: { page: number;
 
 let refreshInFlight: Promise<string | null> | null = null;
 
+/** Refresh via httpOnly cookie on identity origin (credentials: include). */
 async function refreshAccessToken(): Promise<string | null> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
-    const refresh = getRefreshToken();
-    if (!refresh) return null;
     try {
       const res = await fetch(`${IDENTITY_URL}/v1/auth/refresh`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ refreshToken: refresh }),
+        body: JSON.stringify({}),
         cache: "no-store",
+        credentials: "include",
       });
       if (!res.ok) {
         clearSession();
@@ -42,11 +42,11 @@ async function refreshAccessToken(): Promise<string | null> {
       }
       const json = (await res.json()) as ApiEnvelope<AuthData>;
       const data = json.data;
-      if (!data?.accessToken || !data?.refreshToken) {
+      if (!data?.accessToken) {
         clearSession();
         return null;
       }
-      saveSession(data.accessToken, data.refreshToken);
+      saveSession(data.accessToken);
       return data.accessToken;
     } catch {
       clearSession();
@@ -70,6 +70,7 @@ function authHeaderValue(headers?: HeadersInit): string | null {
 }
 
 async function request<T>(base: string, path: string, init?: RequestInit, retried = false): Promise<T> {
+  const isIdentity = base === IDENTITY_URL;
   const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
@@ -77,10 +78,19 @@ async function request<T>(base: string, path: string, init?: RequestInit, retrie
       ...(init?.headers ?? {}),
     },
     cache: "no-store",
+    // Cookie refresh only works when identity requests include credentials
+    credentials: isIdentity ? "include" : (init?.credentials ?? "same-origin"),
   });
-  if (res.status === 401 && !retried && path !== "/v1/auth/refresh" && path !== "/v1/auth/login") {
+  if (
+    res.status === 401 &&
+    !retried &&
+    path !== "/v1/auth/refresh" &&
+    path !== "/v1/auth/login" &&
+    path !== "/v1/auth/register"
+  ) {
     const hadBearer = Boolean(authHeaderValue(init?.headers)?.toLowerCase().startsWith("bearer "));
-    if (hadBearer) {
+    // Also try cookie refresh for identity me when access expired
+    if (hadBearer || isIdentity) {
       const next = await refreshAccessToken();
       if (next) {
         const headers = {
@@ -161,15 +171,17 @@ export const api = {
       headers: { authorization: `Bearer ${token}` },
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
-  refresh: (refreshToken: string) =>
+  /** Cookie-based refresh (body optional). */
+  refresh: (refreshToken?: string) =>
     request<ApiEnvelope<AuthData>>(IDENTITY_URL, "/v1/auth/refresh", {
       method: "POST",
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     }),
-  logout: (refreshToken: string) =>
+  /** Revokes refresh cookie + optional body token. */
+  logout: (refreshToken?: string) =>
     request<void>(IDENTITY_URL, "/v1/auth/logout", {
       method: "POST",
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     }),
   listBookings: (token: string) =>
     request<ApiEnvelope<Booking[]>>(API_URL, "/v1/bookings", {

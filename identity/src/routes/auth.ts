@@ -10,6 +10,11 @@ import { MAX_PASSWORD_LEN, MIN_PASSWORD_LEN, validatePasswordChange } from "../l
 import type Redis from "ioredis";
 import { createLocalJWKSet, jwtVerify, type JSONWebKeySet } from "jose";
 import { toJwks } from "../lib/keys.js";
+import {
+  buildRefreshClearCookie,
+  buildRefreshSetCookie,
+  resolveRefreshToken,
+} from "../lib/refresh-cookie.js";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -22,8 +27,9 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+/** Body refresh optional when httpOnly cookie present. */
 const refreshSchema = z.object({
-  refreshToken: z.string().min(10),
+  refreshToken: z.string().min(10).optional(),
 });
 
 const changePasswordSchema = z.object({
@@ -52,6 +58,26 @@ export async function authRoutes(
 ) {
   const { config, primary, secondary, redis } = deps;
   const jwks = createLocalJWKSet(toJwks(primary, secondary) as unknown as JSONWebKeySet);
+  const cookieSecure = config.NODE_ENV === "production";
+  const cookieSameSite = cookieSecure ? ("None" as const) : ("Lax" as const);
+
+  function setRefreshCookie(reply: FastifyReply, refreshRaw: string) {
+    reply.header(
+      "set-cookie",
+      buildRefreshSetCookie(refreshRaw, {
+        maxAgeSec: config.REFRESH_TOKEN_TTL_SEC,
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
+      }),
+    );
+  }
+
+  function clearRefreshCookie(reply: FastifyReply) {
+    reply.header(
+      "set-cookie",
+      buildRefreshClearCookie({ secure: cookieSecure, sameSite: cookieSameSite }),
+    );
+  }
 
   async function rateLimitIp(req: FastifyRequest, reply: FastifyReply, prefix: string, limit: number) {
     const rlKey = `${prefix}:${req.ip}`;
@@ -97,10 +123,12 @@ export async function authRoutes(
         expiresAt,
       },
     });
+    setRefreshCookie(reply, refreshRaw);
     return reply.status(201).send({
       success: true,
       data: {
         accessToken,
+        /** @deprecated Prefer httpOnly cookie; still returned for backward compat. */
         refreshToken: refreshRaw,
         expiresIn,
         user: publicUser(user),
@@ -159,6 +187,7 @@ export async function authRoutes(
       },
     });
 
+    setRefreshCookie(reply, refreshRaw);
     return {
       success: true,
       data: {
@@ -171,16 +200,20 @@ export async function authRoutes(
   });
 
   app.post("/v1/auth/refresh", async (req, reply) => {
-    const parsed = refreshSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return sendProblem(reply, 400, "Validation error", "refreshToken required");
+    const parsed = refreshSchema.safeParse(req.body ?? {});
+    const bodyToken = parsed.success ? parsed.data.refreshToken : undefined;
+    const cookieHeader = req.headers.cookie;
+    const refreshValue = resolveRefreshToken(bodyToken, cookieHeader);
+    if (!refreshValue) {
+      return sendProblem(reply, 400, "Validation error", "refreshToken required (body or cookie)");
     }
-    const tokenHash = hashToken(parsed.data.refreshToken);
+    const tokenHash = hashToken(refreshValue);
     const stored = await prisma.refreshToken.findUnique({
       where: { tokenHash },
       include: { user: true },
     });
     if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+      clearRefreshCookie(reply);
       return sendProblem(reply, 401, "Unauthorized", "Invalid refresh token");
     }
     // Rotate: revoke old, issue new
@@ -197,6 +230,7 @@ export async function authRoutes(
         expiresAt: new Date(Date.now() + config.REFRESH_TOKEN_TTL_SEC * 1000),
       },
     });
+    setRefreshCookie(reply, refreshRaw);
     return {
       success: true,
       data: {
@@ -209,13 +243,16 @@ export async function authRoutes(
   });
 
   app.post("/v1/auth/logout", async (req, reply) => {
-    const body = refreshSchema.partial().safeParse(req.body ?? {});
-    if (body.success && body.data.refreshToken) {
+    const body = refreshSchema.safeParse(req.body ?? {});
+    const bodyToken = body.success ? body.data.refreshToken : undefined;
+    const refreshValue = resolveRefreshToken(bodyToken, req.headers.cookie);
+    if (refreshValue) {
       await prisma.refreshToken.updateMany({
-        where: { tokenHash: hashToken(body.data.refreshToken) },
+        where: { tokenHash: hashToken(refreshValue) },
         data: { revokedAt: new Date() },
       });
     }
+    clearRefreshCookie(reply);
     return reply.status(204).send();
   });
 
@@ -284,6 +321,7 @@ export async function authRoutes(
       where: { userId: user.id, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    clearRefreshCookie(reply);
     return {
       success: true,
       data: { changed: true, user: publicUser(user) },

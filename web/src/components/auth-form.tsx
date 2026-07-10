@@ -31,7 +31,7 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
             mode === "login"
               ? await api.login(email, password)
               : await api.register(email, password, fullName);
-          saveSession(res.data.accessToken, res.data.refreshToken);
+          saveSession(res.data.accessToken);
           const next = search.get("next");
           const safeNext =
             next && next.startsWith(`/${locale}`) && !next.startsWith("//")

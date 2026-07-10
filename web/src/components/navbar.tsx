@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { getDict, type Locale } from "@/lib/i18n";
 import { api } from "@/lib/api";
-import { clearSession, getAccessToken, getRefreshToken } from "@/lib/auth-storage";
+import { clearSession, getAccessToken, saveSession } from "@/lib/auth-storage";
 import { isAdminRole, readJwtRole } from "@/lib/jwt-role";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +19,28 @@ export function Navbar({ locale }: { locale: Locale }) {
   const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
-    const token = getAccessToken();
-    setAuthed(Boolean(token));
-    setAdmin(isAdminRole(readJwtRole(token)));
+    let cancelled = false;
+    (async () => {
+      let token = getAccessToken();
+      if (!token) {
+        // Silent refresh from httpOnly cookie on identity origin
+        try {
+          const res = await api.refresh();
+          if (res.data?.accessToken) {
+            saveSession(res.data.accessToken);
+            token = res.data.accessToken;
+          }
+        } catch {
+          /* no session cookie */
+        }
+      }
+      if (cancelled) return;
+      setAuthed(Boolean(token));
+      setAdmin(isAdminRole(readJwtRole(token)));
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [pathname]);
 
   const links = [
@@ -88,13 +107,10 @@ export function Navbar({ locale }: { locale: Locale }) {
                 type="button"
                 className="ml-1 inline-flex min-h-11 items-center rounded-lg bg-white px-3 text-sm font-semibold text-[#0064d2]"
                 onClick={async () => {
-                  const rt = getRefreshToken();
-                  if (rt) {
-                    try {
-                      await api.logout(rt);
-                    } catch {
-                      /* ignore logout network errors */
-                    }
+                  try {
+                    await api.logout();
+                  } catch {
+                    /* ignore logout network errors */
                   }
                   clearSession();
                   setAuthed(false);
@@ -203,7 +219,12 @@ export function Navbar({ locale }: { locale: Locale }) {
                 <button
                   type="button"
                   className="inline-flex min-h-11 items-center rounded-md px-2 text-left text-sm"
-                  onClick={() => {
+                  onClick={async () => {
+                    try {
+                      await api.logout();
+                    } catch {
+                      /* ignore */
+                    }
                     clearSession();
                     setAuthed(false);
                     setAdmin(false);
