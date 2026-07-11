@@ -2,6 +2,15 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+function publicUrl(): URL {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:53000";
+  try {
+    return new URL(configured);
+  } catch {
+    return new URL("http://localhost:53000");
+  }
+}
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -14,6 +23,7 @@ const geistMono = Geist_Mono({
 
 /** Fallback metadata; locale layout overrides via generateMetadata. */
 export const metadata: Metadata = {
+  metadataBase: publicUrl(),
   title: {
     default: "TravelAI",
     template: "%s · TravelAI",

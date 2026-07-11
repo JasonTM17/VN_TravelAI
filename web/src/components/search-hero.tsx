@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Building2, Plane, Map, Search, MapPin, CalendarDays } from "lucide-react";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { localDateDaysFromNow } from "@/lib/local-date";
 
 type Tab = "hotel" | "flight" | "tour";
 
@@ -12,11 +13,7 @@ export function SearchHero({ locale, t }: { locale: Locale; t: Dictionary }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("hotel");
   const [q, setQ] = useState("");
-  const [date, setDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().slice(0, 10);
-  });
+  const [date, setDate] = useState(() => localDateDaysFromNow(7));
 
   const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
     { id: "hotel", label: t.nav.hotels, icon: <Building2 className="h-4 w-4" /> },

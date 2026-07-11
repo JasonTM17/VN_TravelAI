@@ -14,21 +14,29 @@ export function WishlistClient({ locale }: { locale: Locale }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function load(token: string) {
-    const res = await api.listWishlist(token);
-    setItems(res.data ?? []);
-  }
-
-  useEffect(() => {
+  async function load() {
     const token = getAccessToken();
     if (!token) {
       setLoading(false);
       setError("auth");
       return;
     }
-    load(token)
-      .catch(() => setError("load"))
-      .finally(() => setLoading(false));
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.listWishlist(token);
+      setItems(res.data ?? []);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t.common.error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    // Initial browser-only auth lookup.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <p className="text-sm text-muted">{t.common.loading}</p>;
@@ -40,6 +48,16 @@ export function WishlistClient({ locale }: { locale: Locale }) {
         ctaHref={`/${locale}/login`}
         ctaLabel={t.nav.login}
       />
+    );
+  }
+  if (error) {
+    return (
+      <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <p>{error}</p>
+        <button type="button" className="mt-2 font-semibold underline" onClick={() => void load()}>
+          {t.common.retry}
+        </button>
+      </div>
     );
   }
   if (!items.length) {
@@ -86,8 +104,13 @@ export function WishlistClient({ locale }: { locale: Locale }) {
               onClick={async () => {
                 const token = getAccessToken();
                 if (!token) return;
-                await api.removeWishlist(token, item.id);
-                setItems((prev) => prev.filter((x) => x.id !== item.id));
+                setError(null);
+                try {
+                  await api.removeWishlist(token, item.id);
+                  setItems((prev) => prev.filter((x) => x.id !== item.id));
+                } catch (cause) {
+                  setError(cause instanceof Error ? cause.message : t.common.error);
+                }
               }}
             >
               {t.common.remove}

@@ -6,19 +6,32 @@ import { BookButton } from "@/components/book-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatVnd } from "@/lib/utils";
 import { getDict, localeTag, type Locale } from "@/lib/i18n";
+import { localDateDaysFromNow } from "@/lib/local-date";
 
 export function FlightSearch({ locale }: { locale: Locale }) {
   const t = getDict(locale);
   const [from, setFrom] = useState("HAN");
   const [to, setTo] = useState("SGN");
-  const [date, setDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().slice(0, 10);
-  });
+  const [date, setDate] = useState(() => localDateDaysFromNow(7));
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function searchFlights() {
+    setLoading(true);
+    setSearched(true);
+    setError(null);
+    try {
+      const res = await api.searchFlights(from.trim(), to.trim(), date);
+      setFlights(res.data ?? []);
+    } catch (cause) {
+      setFlights([]);
+      setError(cause instanceof Error ? cause.message : t.common.error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div>
@@ -26,16 +39,7 @@ export function FlightSearch({ locale }: { locale: Locale }) {
         className="grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-elevated md:grid-cols-4"
         onSubmit={async (e) => {
           e.preventDefault();
-          setLoading(true);
-          setSearched(true);
-          try {
-            const res = await api.searchFlights(from, to, date);
-            setFlights(res.data ?? []);
-          } catch {
-            setFlights([]);
-          } finally {
-            setLoading(false);
-          }
+          void searchFlights();
         }}
       >
         <label className="text-sm">
@@ -56,7 +60,15 @@ export function FlightSearch({ locale }: { locale: Locale }) {
       </form>
 
       <div className="mt-6 space-y-3">
-        {searched && !loading && flights.length === 0 ? (
+        {error ? (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <p>{error}</p>
+            <button type="button" className="mt-2 font-semibold underline" onClick={() => void searchFlights()}>
+              {t.common.retry}
+            </button>
+          </div>
+        ) : null}
+        {searched && !loading && !error && flights.length === 0 ? (
           <EmptyState title={t.empty.title} description={t.empty.description} />
         ) : null}
         {flights.map((f) => (

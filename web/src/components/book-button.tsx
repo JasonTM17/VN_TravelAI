@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { api, type HotelRoomType } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth-storage";
 import type { Locale } from "@/lib/i18n";
+import { localDateDaysFromNow } from "@/lib/local-date";
 
 export function BookButton({
   locale,
@@ -97,12 +98,8 @@ export function BookButton({
           }
           setLoading(true);
           try {
-            const start = new Date();
-            start.setDate(start.getDate() + 7);
-            const end = new Date(start);
-            end.setDate(end.getDate() + 2);
-            const startDate = start.toISOString().slice(0, 10);
-            const endDate = end.toISOString().slice(0, 10);
+            const startDate = localDateDaysFromNow(7);
+            const endDate = localDateDaysFromNow(9);
             const booking = await api.createBooking(
               token,
               {
