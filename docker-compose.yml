@@ -152,6 +152,11 @@ services:
       IDENTITY_ISSUER: ${IDENTITY_ISSUER:-https://identity.travelai.local}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       RUN_SEED: ${RUN_SEED:-true}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-${OPENAI_API_KEY:-}}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://api.openai.com/v1}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      PINECONE_API_KEY: ${PINECONE_API_KEY:-}
+      PINECONE_INDEX: ${PINECONE_INDEX:-travelai-catalog}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       postgres:
@@ -184,6 +189,9 @@ services:
       N8N_WEBHOOK_BASE_URL: ${N8N_WEBHOOK_BASE_URL:-http://n8n:5678/webhook}
       N8N_HMAC_SECRET: ${N8N_HMAC_SECRET:-travelai_n8n_hmac_dev_secret_change_me}
       AI_DEGRADED_MODE: ${AI_DEGRADED_MODE:-false}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-flash}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       API_BASE_URL: http://api:3001
       IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-http://identity:3002/.well-known/jwks.json}
       IDENTITY_ISSUER: ${IDENTITY_ISSUER:-https://identity.travelai.local}

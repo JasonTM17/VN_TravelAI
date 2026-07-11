@@ -1648,6 +1648,13 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            /** @description Idempotency key was reused with a different payload, or requested inventory is unavailable */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     payBooking: {
@@ -1683,6 +1690,23 @@ export interface operations {
                     };
                 };
             };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description Mock payment declined */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            /** @description Booking cannot be paid from its current state, inventory is unavailable, or a concurrent transition won */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     cancelBooking: {
@@ -1707,6 +1731,15 @@ export interface operations {
                         data?: components["schemas"]["Booking"];
                     };
                 };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description Booking cannot be cancelled from its current state or a concurrent transition won */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1844,13 +1877,22 @@ export interface operations {
                     message: string;
                     /** Format: uuid */
                     conversationId?: string;
+                    /** @description Bounded client conversation context for follow-up questions */
+                    history?: {
+                        /** @enum {string} */
+                        role: "user" | "assistant";
+                        content: string;
+                    }[];
                 };
             };
         };
         responses: {
             /**
-             * @description Server-sent event stream. Each `data:` payload is JSON with type `meta`,
-             *     `token`, `done`, or `error`. A successful stream terminates with `done`.
+             * @description Direct DeepSeek server-sent event stream with catalog RAG. Events are
+             *     ordered as one `meta`, zero or more `token`, then one `done`. Upstream
+             *     failure is converted to a degraded stream with the same event order.
+             *     This path shares the per-user Redis rate limit but does not use the HMAC
+             *     webhook or webhook tools.
              */
             200: {
                 headers: {
@@ -1860,8 +1902,9 @@ export interface operations {
                     "text/event-stream": string;
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            /** @description Rate limit exceeded */
+            /** @description Shared per-user chat rate limit exceeded */
             429: {
                 headers: {
                     [name: string]: unknown;

@@ -4,11 +4,15 @@ info:
   version: 0.1.0
   description: |
     Canonical HTTP contract for TravelAI services.
+    Server URLs on operations use native/container ports (3001-3003). The documented
+    Docker local overlay exposes the same services on host ports 53001-53003.
     Paths are namespaced by service responsibility.
     Success envelope: `{ "success": true, "data": ..., "meta"?: ... }`
     Errors: RFC 7807 Problem Details where applicable.
   license:
     name: MIT
+    identifier: MIT
+security: []
 servers:
   - url: http://localhost:3001
     description: api (catalog, booking)
@@ -19,15 +23,25 @@ servers:
 
 tags:
   - name: health
+    description: Service liveness, readiness, and metrics
   - name: auth
+    description: Identity, sessions, and public keys
   - name: destinations
+    description: Destination catalog and unified search
   - name: hotels
+    description: Hotel catalog, room types, rates, and availability
   - name: tours
+    description: Tour catalog
   - name: flights
+    description: Demo flight search
   - name: transport
+    description: Demo ground transport catalog
   - name: bookings
+    description: Authenticated booking lifecycle
   - name: wishlists
+    description: Authenticated saved catalog items
   - name: ai
+    description: Concierge chat, streaming, itineraries, and signed callbacks
 
 paths:
   /healthz:
@@ -658,6 +672,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Idempotency key was reused with a different payload, or requested inventory is unavailable
 
   /v1/bookings/{id}/pay:
     post:
@@ -690,6 +706,16 @@ paths:
                     type: boolean
                   data:
                     $ref: "#/components/schemas/Booking"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: Mock payment declined
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Booking cannot be paid from its current state, inventory is unavailable, or a concurrent transition won
 
   /v1/bookings/{id}/cancel:
     post:
@@ -712,6 +738,12 @@ paths:
                     type: boolean
                   data:
                     $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Booking cannot be cancelled from its current state or a concurrent transition won
 
   /v1/wishlists:
     get:
@@ -842,19 +874,39 @@ paths:
                 conversationId:
                   type: string
                   format: uuid
+                history:
+                  type: array
+                  maxItems: 10
+                  description: Bounded client conversation context for follow-up questions
+                  items:
+                    type: object
+                    required: [role, content]
+                    properties:
+                      role:
+                        type: string
+                        enum: [user, assistant]
+                      content:
+                        type: string
+                        minLength: 1
+                        maxLength: 2000
       responses:
         "200":
           description: |
-            Server-sent event stream. Each `data:` payload is JSON with type `meta`,
-            `token`, `done`, or `error`. A successful stream terminates with `done`.
+            Direct DeepSeek server-sent event stream with catalog RAG. Events are
+            ordered as one `meta`, zero or more `token`, then one `done`. Upstream
+            failure is converted to a degraded stream with the same event order.
+            This path shares the per-user Redis rate limit but does not use the HMAC
+            webhook or webhook tools.
           content:
             text/event-stream:
               schema:
                 type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "429":
-          description: Rate limit exceeded
+          description: Shared per-user chat rate limit exceeded
 
   /v1/chat/conversations:
     get:

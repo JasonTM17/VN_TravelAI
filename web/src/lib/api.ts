@@ -220,13 +220,17 @@ export const api = {
     message: string,
     conversationId: string | undefined,
     onToken: (text: string) => void,
-    options: { signal?: AbortSignal; timeoutMs?: number } = {},
+    options: {
+      signal?: AbortSignal;
+      timeoutMs?: number;
+      history?: Array<{ role: "user" | "assistant"; content: string }>;
+    } = {},
   ): Promise<{ conversationId: string; reply: string; degraded: boolean }> => {
     const controller = new AbortController();
     const abortFromCaller = () => controller.abort(options.signal?.reason);
     options.signal?.addEventListener("abort", abortFromCaller, { once: true });
     if (options.signal?.aborted) abortFromCaller();
-    const timeout = setTimeout(() => controller.abort(new Error("Chat stream timed out")), options.timeoutMs ?? 45_000);
+    const timeout = setTimeout(() => controller.abort(new Error("Chat stream timed out")), options.timeoutMs ?? 65_000);
     try {
       const res = await fetch(`${AI_URL}/v1/chat/stream`, {
         method: "POST",
@@ -234,7 +238,7 @@ export const api = {
           "content-type": "application/json",
           authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ message, conversationId }),
+        body: JSON.stringify({ message, conversationId, history: options.history }),
         cache: "no-store",
         signal: controller.signal,
       });

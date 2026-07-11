@@ -7,6 +7,7 @@
 
 const ACCESS = "travelai_access";
 const LEGACY_REFRESH = "travelai_refresh";
+const CHAT_CONVERSATION = "travelai.chat.conversationId";
 
 let accessMem: string | null = null;
 
@@ -57,6 +58,7 @@ export function clearSession() {
   accessMem = null;
   try {
     window.sessionStorage?.removeItem(ACCESS);
+    window.sessionStorage?.removeItem(CHAT_CONVERSATION);
   } catch {
     /* ignore */
   }

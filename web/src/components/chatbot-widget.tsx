@@ -10,6 +10,7 @@ import { getDict, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "ai"; text: string; degraded?: boolean };
+const conversationStorageKey = "travelai.chat.conversationId";
 
 export function ChatbotWidget({ locale }: { locale: Locale }) {
   const t = getDict(locale);
@@ -75,6 +76,13 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
   // Restore last conversation from session when opening (if logged in)
   useEffect(() => {
     if (!open) return;
+    if (!conversationId) {
+      const stored = sessionStorage.getItem(conversationStorageKey) || undefined;
+      if (stored) {
+        setConversationId(stored);
+        return;
+      }
+    }
     const token = getAccessToken();
     if (!token || !conversationId) return;
     let cancelled = false;
@@ -96,9 +104,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     return () => {
       cancelled = true;
     };
-    // only when dialog opens with known id
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [conversationId, open]);
 
   const chips =
     locale === "vi"
@@ -117,6 +123,13 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     setMessages((m) => [...m, { role: "user", text: trimmed }]);
     setInput("");
     setLoading(true);
+    const history = messages
+      .filter((message, index) => index > 0 && message.text.trim())
+      .slice(-10)
+      .map((message) => ({
+        role: message.role === "ai" ? ("assistant" as const) : ("user" as const),
+        content: message.text,
+      }));
     const controller = new AbortController();
     requestRef.current?.abort();
     requestRef.current = controller;
@@ -132,9 +145,10 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
           }
           return copy;
         });
-      }, { signal: controller.signal });
+      }, { signal: controller.signal, history });
       const cid = result.conversationId || conversationId || "";
       setConversationId(cid);
+      if (cid) sessionStorage.setItem(conversationStorageKey, cid);
       setMessages((m) => {
         const copy = [...m];
         const last = copy[copy.length - 1];
@@ -184,19 +198,19 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
   if (hideOnAiPage) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+    <div className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open ? (
         <div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={t.chatbot.title}
-          className="pointer-events-auto flex h-[min(520px,70vh)] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-float"
+          className="pointer-events-auto flex h-[min(520px,70vh)] w-[min(380px,calc(100vw-2rem))] flex-col overscroll-contain overflow-hidden rounded-2xl border border-border bg-white shadow-float"
         >
           <header className="flex items-center justify-between bg-[#0064d2] px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
-                <Sparkles className="h-4 w-4" />
+                <Sparkles aria-hidden="true" className="h-4 w-4" />
               </span>
               <div>
                 <div className="text-sm font-bold leading-tight">{t.chatbot.title}</div>
@@ -209,11 +223,11 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
               aria-label={t.chatbot.close}
               onClick={() => setOpen(false)}
             >
-              <X className="h-5 w-5" />
+              <X aria-hidden="true" className="h-5 w-5" />
             </button>
           </header>
 
-          <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto bg-[#f5f7fa] p-3">
+          <div ref={listRef} role="log" aria-live="polite" aria-relevant="additions text" className="flex-1 space-y-2 overflow-y-auto bg-[#f5f7fa] p-3">
             {messages.map((m, i) => (
               <div
                 key={i}
@@ -231,7 +245,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
               </div>
             ))}
             {loading ? (
-              <div className="mr-auto w-24 animate-shimmer rounded-2xl px-3 py-4 text-xs text-muted">
+              <div role="status" className="mr-auto w-24 animate-shimmer rounded-2xl px-3 py-4 text-xs text-muted">
                 …
               </div>
             ) : null}
@@ -239,14 +253,14 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
 
           <div className="space-y-2 border-t border-border bg-white p-3">
             {error === "auth" ? (
-              <div className="rounded-lg bg-[#fff4e8] px-3 py-2 text-xs text-[#9a3412]">
+              <div role="alert" className="rounded-lg bg-[#fff4e8] px-3 py-2 text-xs text-[#9a3412]">
                 {t.chatbot.loginHint}{" "}
                 <Link href={`/${locale}/login`} className="font-semibold text-[#0064d2] underline">
                   {t.nav.login}
                 </Link>
               </div>
             ) : error ? (
-              <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
+              <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
             ) : null}
 
             <div className="flex flex-wrap gap-1.5">
@@ -275,13 +289,15 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
               <input
                 ref={inputRef}
                 value={input}
+                name="message"
+                autoComplete="off"
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t.chatbot.placeholder}
                 className="input-field flex-1 py-2 text-sm"
                 aria-label={t.chatbot.placeholder}
               />
               <button type="submit" className="btn-accent px-3" disabled={loading} aria-label={t.chatbot.send}>
-                <Send className="h-4 w-4" />
+                <Send aria-hidden="true" className="h-4 w-4" />
               </button>
             </form>
           </div>
@@ -296,7 +312,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
         aria-label={t.chatbot.open}
         onClick={() => setOpen((v) => !v)}
       >
-        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        {open ? <X aria-hidden="true" className="h-5 w-5" /> : <MessageCircle aria-hidden="true" className="h-5 w-5" />}
         <span className="hidden sm:inline">{open ? t.chatbot.close : t.chatbot.open}</span>
       </button>
     </div>
