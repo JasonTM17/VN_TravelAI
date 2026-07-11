@@ -1,7 +1,6 @@
 name: e2e
 
-# Playwright against local compose ports. Skips when repo vars disable it
-# (e.g. Actions billing blocked). Run locally:
+# Playwright against local compose ports. Run locally:
 #   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 #   cd e2e && pnpm test
 
@@ -18,8 +17,6 @@ concurrency:
 
 jobs:
   playwright:
-    # Set repository variable E2E_ENABLED=true to run in Actions when billing allows.
-    if: ${{ vars.E2E_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -33,30 +30,28 @@ jobs:
       - name: Start stack
         run: |
           docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
-          sleep 40
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:53000/healthz >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -f docker-compose.yml -f docker-compose.local.yml ps
+          docker compose -f docker-compose.yml -f docker-compose.local.yml logs
+          exit 1
       - name: Install e2e deps
         working-directory: e2e
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browser
         working-directory: e2e
         run: pnpm exec playwright install chromium --with-deps
-      - name: Smoke + booking
+      - name: Run all E2E specs
         working-directory: e2e
         env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:53000
-        run: pnpm exec playwright test tests/smoke.spec.ts tests/booking-happy.spec.ts
+          WEB_URL: http://localhost:53000
+          BASE_WEB: http://localhost:53000
+          BASE_IDENTITY: http://localhost:53002
+        run: pnpm test
       - name: Teardown
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.local.yml down -v
-
-  e2e-status:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Document e2e gate
-        run: |
-          if [ "${{ vars.E2E_ENABLED }}" = "true" ]; then
-            echo "E2E enabled via repo variable E2E_ENABLED"
-          else
-            echo "E2E skipped in CI (set repository variable E2E_ENABLED=true to enable)."
-            echo "Required locally after compose up: cd e2e && pnpm test"
-          fi
