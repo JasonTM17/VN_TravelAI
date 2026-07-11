@@ -1,6 +1,7 @@
 import { clearSession, saveSession } from "./auth-storage";
 import { messageFromErrorBody } from "./problem-error";
 import { resolveServiceBaseUrl } from "./service-url";
+import { consumeChatStream } from "./chat-stream";
 
 // Browser: NEXT_PUBLIC_* host ports (e.g. localhost:53001).
 // Server/SSR in Docker: API_INTERNAL_URL=http://api:3001 (compose network).
@@ -26,6 +27,8 @@ let refreshInFlight: Promise<string | null> | null = null;
 
 /** Refresh via httpOnly cookie on identity origin (credentials: include). */
 async function refreshAccessToken(): Promise<string | null> {
+  // Auth state is browser-scoped. Never share refresh work between SSR requests.
+  if (typeof window === "undefined") return null;
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     try {
@@ -139,10 +142,7 @@ export const api = {
   },
   getTour: (slug: string) => request<ApiEnvelope<Tour>>(API_URL, `/v1/tours/${slug}`),
   searchFlights: (from: string, to: string, date: string) =>
-    request<ApiEnvelope<Flight[]>>(
-      API_URL,
-      `/v1/flights/search?from=${from}&to=${to}&date=${date}`,
-    ),
+    request<ApiEnvelope<Flight[]>>(API_URL, `/v1/flights/search?${new URLSearchParams({ from, to, date })}`),
   listTransports: (params: Record<string, string | number | undefined> = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {
@@ -220,58 +220,33 @@ export const api = {
     message: string,
     conversationId: string | undefined,
     onToken: (text: string) => void,
+    options: { signal?: AbortSignal; timeoutMs?: number } = {},
   ): Promise<{ conversationId: string; reply: string; degraded: boolean }> => {
-    const res = await fetch(`${AI_URL}/v1/chat/stream`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ message, conversationId }),
-      cache: "no-store",
-    });
-    if (!res.ok || !res.body) {
-      const text = await res.text();
-      throw new Error(messageFromErrorBody(text, res.status));
-    }
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-    let cid = conversationId ?? "";
-    let full = "";
-    let degraded = false;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const parts = buf.split("\n");
-      buf = parts.pop() ?? "";
-      for (const line of parts) {
-        const t = line.trim();
-        if (!t.startsWith("data:")) continue;
-        try {
-          const ev = JSON.parse(t.slice(5).trim()) as {
-            type?: string;
-            text?: string;
-            conversationId?: string;
-            reply?: string;
-            degraded?: boolean;
-          };
-          if (ev.type === "meta" && ev.conversationId) cid = ev.conversationId;
-          if (ev.type === "token" && ev.text) {
-            full += ev.text;
-            onToken(ev.text);
-          }
-          if (ev.type === "done") {
-            if (ev.reply) full = ev.reply;
-            degraded = Boolean(ev.degraded);
-          }
-        } catch {
-          /* ignore */
-        }
+    const controller = new AbortController();
+    const abortFromCaller = () => controller.abort(options.signal?.reason);
+    options.signal?.addEventListener("abort", abortFromCaller, { once: true });
+    if (options.signal?.aborted) abortFromCaller();
+    const timeout = setTimeout(() => controller.abort(new Error("Chat stream timed out")), options.timeoutMs ?? 45_000);
+    try {
+      const res = await fetch(`${AI_URL}/v1/chat/stream`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message, conversationId }),
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) {
+        const text = await res.text();
+        throw new Error(messageFromErrorBody(text, res.status));
       }
+      return await consumeChatStream(res.body, conversationId, onToken);
+    } finally {
+      clearTimeout(timeout);
+      options.signal?.removeEventListener("abort", abortFromCaller);
     }
-    return { conversationId: cid, reply: full, degraded };
   },
   listNotifications: (token: string) =>
     request<

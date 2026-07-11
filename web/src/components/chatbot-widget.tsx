@@ -23,26 +23,49 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     { role: "ai", text: t.chatbot.welcome },
   ]);
   const listRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
   // Hide FAB on dedicated AI planner page (still available elsewhere)
   const hideOnAiPage = pathname?.includes("/ai");
 
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const triggerAtOpen = triggerRef.current;
+    inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      const request = requestRef.current;
+      requestRef.current = null;
+      request?.abort();
+      setLoading(false);
+      (previouslyFocused ?? triggerAtOpen)?.focus();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
   useEffect(() => {
@@ -94,6 +117,9 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     setMessages((m) => [...m, { role: "user", text: trimmed }]);
     setInput("");
     setLoading(true);
+    const controller = new AbortController();
+    requestRef.current?.abort();
+    requestRef.current = controller;
     try {
       // Streaming path (SSE) with progressive assistant bubble
       setMessages((m) => [...m, { role: "ai", text: "" }]);
@@ -106,7 +132,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
           }
           return copy;
         });
-      });
+      }, { signal: controller.signal });
       const cid = result.conversationId || conversationId || "";
       setConversationId(cid);
       setMessages((m) => {
@@ -137,7 +163,10 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
         /* history optional */
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : t.common.error);
+      const closedByUi = controller.signal.aborted && requestRef.current !== controller;
+      if (closedByUi) return;
+      const cause = controller.signal.reason instanceof Error ? controller.signal.reason : e;
+      setError(cause instanceof Error ? cause.message : t.common.error);
       // remove empty assistant bubble on hard fail
       setMessages((m) => {
         const last = m[m.length - 1];
@@ -145,7 +174,10 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
         return m;
       });
     } finally {
-      setLoading(false);
+      if (requestRef.current === controller) {
+        requestRef.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -155,6 +187,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
     <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open ? (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={t.chatbot.title}
@@ -240,6 +273,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
               }}
             >
               <input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t.chatbot.placeholder}
@@ -255,6 +289,7 @@ export function ChatbotWidget({ locale }: { locale: Locale }) {
       ) : null}
 
       <button
+        ref={triggerRef}
         type="button"
         className="pointer-events-auto flex items-center gap-2 rounded-full bg-[#ff6d00] px-4 py-3 text-sm font-bold text-white shadow-glow transition hover:bg-[#e65100]"
         aria-expanded={open}

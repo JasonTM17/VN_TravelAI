@@ -35,6 +35,13 @@ describe("auth-storage memory-first", () => {
     delete process.env.NEXT_PUBLIC_PERSIST_ACCESS;
   });
 
+  it("does not retain auth state when invoked during SSR", () => {
+    clearSession();
+    delete (globalThis as unknown as { window?: unknown }).window;
+    saveSession("server-user-token");
+    expect(getAccessToken()).toBeNull();
+  });
+
   it("default saves access only in memory, not sessionStorage", () => {
     saveSession("access-1", "refresh-ignored");
     expect(getAccessToken()).toBe("access-1");

@@ -242,6 +242,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/hotels/{slug}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hotel night availability (PMS room type optional) */
+        get: operations["getHotelAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/search/vectors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Semantic catalog vector search */
+        get: operations["searchVectors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/reindex-vectors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reindex catalog embeddings (Pinecone or Postgres) */
+        post: operations["adminReindexVectors"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/tours": {
         parameters: {
             query?: never;
@@ -321,6 +372,23 @@ export interface paths {
         get: operations["getTransport"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a hotel or tour review (authenticated) */
+        post: operations["createReview"];
         delete?: never;
         options?: never;
         head?: never;
@@ -442,6 +510,74 @@ export interface paths {
         put?: never;
         /** AI concierge chat */
         post: operations["aiChat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stream an AI concierge reply using server-sent events */
+        post: operations["aiChatStream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List chat conversations for current user */
+        get: operations["listChatConversations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/conversations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get chat conversation with messages */
+        get: operations["getChatConversation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Append chat messages (persist after AI reply) */
+        post: operations["persistChatMessages"];
         delete?: never;
         options?: never;
         head?: never;
@@ -608,6 +744,7 @@ export interface components {
             success?: boolean;
             data?: {
                 accessToken?: string;
+                /** @description Omitted by default; present only when ALLOW_BODY_REFRESH=true. Prefer httpOnly cookie. */
                 refreshToken?: string;
                 expiresIn?: number;
                 user?: components["schemas"]["User"];
@@ -632,6 +769,27 @@ export interface components {
             data?: components["schemas"]["Destination"][];
             meta?: components["schemas"]["PageMeta"];
         };
+        HotelRoomType: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            nameEn?: string;
+            nameVi?: string;
+            maxOccupancy?: number;
+            roomsTotal?: number;
+            basePriceVnd?: number;
+            ratePlans?: components["schemas"]["RatePlan"][];
+        };
+        RatePlan: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            nameEn?: string;
+            nameVi?: string;
+            priceVnd?: number;
+            breakfastIncluded?: boolean;
+            refundable?: boolean;
+        };
         Hotel: {
             /** Format: uuid */
             id?: string;
@@ -644,6 +802,8 @@ export interface components {
             images?: string[];
             amenities?: string[];
             rating?: number;
+            roomsLeft?: number;
+            roomTypes?: components["schemas"]["HotelRoomType"][];
         };
         HotelListResponse: {
             success?: boolean;
@@ -710,7 +870,7 @@ export interface components {
         };
         CreateBookingRequest: {
             /** @enum {string} */
-            itemType: "hotel" | "tour" | "flight";
+            itemType: "hotel" | "tour" | "flight" | "transport";
             /** Format: uuid */
             itemId: string;
             guests: number;
@@ -722,13 +882,24 @@ export interface components {
             /** Format: email */
             contactEmail?: string;
             contactPhone?: string;
+            /**
+             * Format: uuid
+             * @description Optional PMS room type (hotel); defaults to STD
+             */
+            roomTypeId?: string;
+            /**
+             * Format: uuid
+             * @description Optional rate plan; defaults to BAR
+             */
+            ratePlanId?: string;
         };
         Booking: {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
             status?: "draft" | "pending_payment" | "confirmed" | "cancelled";
-            itemType?: string;
+            /** @enum {string} */
+            itemType?: "hotel" | "tour" | "flight" | "transport";
             itemId?: string;
             totalVnd?: number;
             guests?: number;
@@ -794,6 +965,15 @@ export interface components {
         };
         /** @description Unauthorized */
         Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Authenticated but not permitted */
+        Forbidden: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1190,6 +1370,74 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getHotelAvailability: {
+        parameters: {
+            query: {
+                start: string;
+                end?: string;
+                roomTypeId?: string;
+            };
+            header?: never;
+            path: {
+                slug: components["parameters"]["Slug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    searchVectors: {
+        parameters: {
+            query: {
+                q: string;
+                topK?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    adminReindexVectors: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Token"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     searchTours: {
         parameters: {
             query?: {
@@ -1312,6 +1560,43 @@ export interface operations {
                 content?: never;
             };
             404: components["responses"]["NotFound"];
+        };
+    };
+    createReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    hotelId?: string;
+                    /** Format: uuid */
+                    tourId?: string;
+                    rating: number;
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Duplicate review */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     listBookings: {
@@ -1544,6 +1829,121 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    aiChatStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                    /** Format: uuid */
+                    conversationId?: string;
+                };
+            };
+        };
+        responses: {
+            /**
+             * @description Server-sent event stream. Each `data:` payload is JSON with type `meta`,
+             *     `token`, `done`, or `error`. A successful stream terminates with `done`.
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listChatConversations: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getChatConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    persistChatMessages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    conversationId?: string;
+                    title?: string;
+                    messages: {
+                        /** @enum {string} */
+                        role: "user" | "assistant" | "system";
+                        content: string;
+                        degraded?: boolean;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     createItinerary: {

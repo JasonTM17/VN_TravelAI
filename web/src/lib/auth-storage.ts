@@ -36,6 +36,7 @@ function legacyLocal(): Storage | null {
 /** Persist access token. Second arg ignored (refresh is httpOnly cookie). */
 export function saveSession(accessToken: string, refreshToken?: string) {
   void refreshToken;
+  if (typeof window === "undefined") return;
   accessMem = accessToken;
   const ss = accessStore();
   if (ss) ss.setItem(ACCESS, accessToken);
@@ -52,6 +53,7 @@ export function saveSession(accessToken: string, refreshToken?: string) {
 }
 
 export function clearSession() {
+  if (typeof window === "undefined") return;
   accessMem = null;
   try {
     window.sessionStorage?.removeItem(ACCESS);

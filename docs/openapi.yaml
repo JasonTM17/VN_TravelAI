@@ -819,6 +819,43 @@ paths:
                       degraded:
                         type: boolean
 
+  /v1/chat/stream:
+    post:
+      tags: [ai]
+      summary: Stream an AI concierge reply using server-sent events
+      operationId: aiChatStream
+      servers:
+        - url: http://localhost:3003
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                conversationId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: |
+            Server-sent event stream. Each `data:` payload is JSON with type `meta`,
+            `token`, `done`, or `error`. A successful stream terminates with `done`.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          description: Rate limit exceeded
+
   /v1/chat/conversations:
     get:
       tags: [bookings]
@@ -1102,6 +1139,12 @@ components:
             $ref: "#/components/schemas/Problem"
     Unauthorized:
       description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: Authenticated but not permitted
       content:
         application/problem+json:
           schema:
