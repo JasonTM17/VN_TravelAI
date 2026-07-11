@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/auth-storage";
@@ -100,14 +101,9 @@ export function ChangePasswordForm({ locale }: { locale: Locale }) {
       {ok ? (
         <div className="space-y-3" data-testid="change-password-ok">
           <p className="text-sm text-[#00a86b]">{t.auth.changePasswordOk}</p>
-          <button
-            type="button"
-            className="btn-primary w-full"
-            data-testid="change-password-relogin"
-            onClick={() => router.push(`/${locale}/login?next=/${locale}/account`)}
-          >
+          <Link className="btn-primary w-full" data-testid="change-password-relogin" href={`/${locale}/login?next=/${locale}/account`}>
             {t.auth.submitLogin}
-          </button>
+          </Link>
         </div>
       ) : (
         <button type="submit" className="btn-primary w-full disabled:opacity-60" disabled={loading}>

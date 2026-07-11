@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { api, type Itinerary } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth-storage";
-import { getDict, tFormat, type Locale } from "@/lib/i18n";
+import { getDict, localeTag, tFormat, type Locale } from "@/lib/i18n";
 import { formatVnd } from "@/lib/utils";
 
 export function AiPlanner({ locale }: { locale: Locale }) {
@@ -34,16 +34,21 @@ export function AiPlanner({ locale }: { locale: Locale }) {
   return (
     <div className="space-y-6">
       {error === "auth" ? (
-        <div className="rounded-xl border border-coral/30 bg-coral/5 p-3 text-sm">
+        <div role="alert" className="rounded-xl border border-coral/30 bg-coral/5 p-3 text-sm">
           <Link href={`/${locale}/login`} className="font-medium text-ocean underline">
             {t.nav.login}
           </Link>{" "}
           to use AI Concierge.
         </div>
       ) : null}
+      {error && error !== "auth" ? (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      ) : null}
 
       <div className="rounded-2xl border border-border bg-card p-4 shadow-elevated">
-        <div className="mb-3 max-h-64 space-y-2 overflow-y-auto">
+        <div role="log" aria-live="polite" aria-relevant="additions text" className="mb-3 max-h-64 space-y-2 overflow-y-auto">
           {chatLog.length === 0 ? (
             <p className="text-sm text-muted">{t.ai.placeholder}</p>
           ) : (
@@ -83,6 +88,9 @@ export function AiPlanner({ locale }: { locale: Locale }) {
           }}
         >
           <input
+            name="message"
+            autoComplete="off"
+            aria-label={t.ai.placeholder}
             className="flex-1 rounded-xl border border-border px-3 py-2 text-sm"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -99,15 +107,15 @@ export function AiPlanner({ locale }: { locale: Locale }) {
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <label className="text-sm sm:col-span-1">
             {t.ai.destination}
-            <input className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={destination} onChange={(e) => setDestination(e.target.value)} />
+            <input name="destination" autoComplete="off" className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={destination} onChange={(e) => setDestination(e.target.value)} />
           </label>
           <label className="text-sm">
             {t.ai.days}
-            <input type="number" min={1} max={21} className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={days} onChange={(e) => setDays(Number(e.target.value))} />
+            <input name="days" type="number" inputMode="numeric" min={1} max={21} className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={days} onChange={(e) => setDays(Number(e.target.value))} />
           </label>
           <label className="text-sm">
             {t.ai.budget}
-            <input type="number" className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={budget} onChange={(e) => setBudget(Number(e.target.value))} />
+            <input name="budget" type="number" inputMode="numeric" min={0} className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={budget} onChange={(e) => setBudget(Number(e.target.value))} />
           </label>
         </div>
         <button
@@ -144,7 +152,7 @@ export function AiPlanner({ locale }: { locale: Locale }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-xl font-semibold">{itinerary.destination}</h3>
             <div className="text-sm text-ocean font-medium">
-              {formatVnd(itinerary.estimatedBudgetVnd)}
+              {formatVnd(itinerary.estimatedBudgetVnd, localeTag(locale))}
               {itinerary.degraded ? (
                 <span className="ml-2 text-xs text-coral">({t.ai.degraded})</span>
               ) : null}

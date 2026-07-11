@@ -49,6 +49,8 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
         <label className="block text-sm">
           {t.auth.fullName}
           <input
+            name="fullName"
+            autoComplete="name"
             className="input-field mt-1"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
@@ -60,6 +62,9 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
         {t.auth.email}
         <input
           type="email"
+          name="email"
+          autoComplete="email"
+          spellCheck={false}
           className="input-field mt-1"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -70,6 +75,8 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
         {t.auth.password}
         <input
           type="password"
+          name="password"
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
           className="input-field mt-1"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -77,13 +84,13 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "re
           minLength={8}
         />
       </label>
-      {error ? <p className="text-sm text-coral">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-coral">{error}</p> : null}
       <button
         type="submit"
         disabled={loading}
         className="btn-primary w-full disabled:opacity-60"
       >
-        {loading ? "..." : mode === "login" ? t.auth.submitLogin : t.auth.submitRegister}
+        {loading ? t.common.loading.replace("...", "…") : mode === "login" ? t.auth.submitLogin : t.auth.submitRegister}
       </button>
     </form>
   );

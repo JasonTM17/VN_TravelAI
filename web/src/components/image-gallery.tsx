@@ -89,12 +89,11 @@ export function ImageGallery({
                 type="button"
                 aria-label={tFormat(t.common.goToImage, { n: i + 1 })}
                 aria-current={i === safe}
-                className={cn(
-                  "h-2.5 w-2.5 rounded-full transition",
-                  i === safe ? "bg-white" : "bg-white/50 hover:bg-white/80",
-                )}
+                className="flex h-11 w-11 items-center justify-center rounded-full"
                 onClick={() => setIndex(i)}
-              />
+              >
+                <span aria-hidden="true" className={cn("h-2.5 w-2.5 rounded-full transition-colors", i === safe ? "bg-white" : "bg-white/50 hover:bg-white/80")} />
+              </button>
             ))}
           </div>
           <div className="absolute right-3 top-3 rounded-md bg-black/50 px-2 py-0.5 text-xs font-medium text-white">

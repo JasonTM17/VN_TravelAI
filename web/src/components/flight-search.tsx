@@ -8,11 +8,11 @@ import { formatVnd } from "@/lib/utils";
 import { getDict, localeTag, type Locale } from "@/lib/i18n";
 import { localDateDaysFromNow } from "@/lib/local-date";
 
-export function FlightSearch({ locale }: { locale: Locale }) {
+export function FlightSearch({ locale, initialFrom = "HAN", initialTo = "SGN", initialDate }: { locale: Locale; initialFrom?: string; initialTo?: string; initialDate?: string }) {
   const t = getDict(locale);
-  const [from, setFrom] = useState("HAN");
-  const [to, setTo] = useState("SGN");
-  const [date, setDate] = useState(() => localDateDaysFromNow(7));
+  const [from, setFrom] = useState(initialFrom);
+  const [to, setTo] = useState(initialTo);
+  const [date, setDate] = useState(() => initialDate || localDateDaysFromNow(7));
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -44,15 +44,15 @@ export function FlightSearch({ locale }: { locale: Locale }) {
       >
         <label className="text-sm">
           {t.common.flightFrom}
-          <input className="mt-1 w-full rounded-xl border border-border px-3 py-2 uppercase" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <input name="from" autoComplete="off" maxLength={3} className="mt-1 w-full rounded-xl border border-border px-3 py-2 uppercase" value={from} onChange={(e) => setFrom(e.target.value)} />
         </label>
         <label className="text-sm">
           {t.common.flightTo}
-          <input className="mt-1 w-full rounded-xl border border-border px-3 py-2 uppercase" value={to} onChange={(e) => setTo(e.target.value)} />
+          <input name="to" autoComplete="off" maxLength={3} className="mt-1 w-full rounded-xl border border-border px-3 py-2 uppercase" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
         <label className="text-sm">
           {t.common.flightDate}
-          <input type="date" className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={date} onChange={(e) => setDate(e.target.value)} />
+          <input type="date" name="date" className="mt-1 w-full rounded-xl border border-border px-3 py-2" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <button type="submit" className="self-end rounded-xl bg-ocean py-2.5 font-medium text-white shadow-glow">
           {loading ? t.common.loading : t.home.searchCta}
@@ -82,7 +82,7 @@ export function FlightSearch({ locale }: { locale: Locale }) {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="font-semibold text-ocean">{formatVnd(f.priceVnd)}</div>
+              <div className="font-semibold text-ocean">{formatVnd(f.priceVnd, localeTag(locale))}</div>
               <BookButton locale={locale} itemType="flight" itemId={f.id} label={t.common.book} />
             </div>
           </div>

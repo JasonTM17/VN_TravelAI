@@ -7,7 +7,7 @@ import { getAccessToken } from "@/lib/auth-storage";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatVnd } from "@/lib/utils";
-import { getDict, type Locale } from "@/lib/i18n";
+import { getDict, localeTag, type Locale } from "@/lib/i18n";
 
 export function BookingsClient({ locale }: { locale: Locale }) {
   const t = getDict(locale);
@@ -15,6 +15,7 @@ export function BookingsClient({ locale }: { locale: Locale }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [paymentErrorId, setPaymentErrorId] = useState<string | null>(null);
 
   async function reload(token: string) {
     const res = await api.listBookings(token);
@@ -42,6 +43,26 @@ export function BookingsClient({ locale }: { locale: Locale }) {
         ctaHref={`/${locale}/login`}
         ctaLabel={t.nav.login}
       />
+    );
+  }
+  if (error === "load") {
+    return (
+      <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <p>{t.common.error}</p>
+        <button
+          type="button"
+          className="mt-3 rounded-lg border border-red-300 px-3 py-2 font-semibold hover:bg-red-100"
+          onClick={() => {
+            const token = getAccessToken();
+            if (!token) return;
+            setLoading(true);
+            setError(null);
+            void reload(token).catch(() => setError("load")).finally(() => setLoading(false));
+          }}
+        >
+          {t.common.retry}
+        </button>
+      </div>
     );
   }
   if (!bookings.length) {
@@ -75,12 +96,12 @@ export function BookingsClient({ locale }: { locale: Locale }) {
                 )}
               </div>
               <div className="text-sm text-muted">
-                {b.startDate?.toString?.().slice?.(0, 10) ?? b.startDate} · {b.guests} guests
+                {new Intl.DateTimeFormat(localeTag(locale), { dateStyle: "medium" }).format(new Date(b.startDate))} · {b.guests} {locale === "vi" ? "khách" : b.guests === 1 ? "guest" : "guests"}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <StatusBadge status={b.status} />
-              <div className="font-semibold text-ocean">{formatVnd(b.totalVnd)}</div>
+              <div className="font-semibold text-ocean">{formatVnd(b.totalVnd, localeTag(locale))}</div>
               {payable ? (
                 <button
                   type="button"
@@ -90,11 +111,12 @@ export function BookingsClient({ locale }: { locale: Locale }) {
                     const token = getAccessToken();
                     if (!token) return;
                     setPayingId(b.id);
+                    setPaymentErrorId(null);
                     try {
                       await api.payBooking(token, b.id, "success");
                       await reload(token);
                     } catch {
-                      /* keep list */
+                      setPaymentErrorId(b.id);
                     } finally {
                       setPayingId(null);
                     }
@@ -102,6 +124,11 @@ export function BookingsClient({ locale }: { locale: Locale }) {
                 >
                   {payingId === b.id ? t.common.loading : t.booking.pay}
                 </button>
+              ) : null}
+              {paymentErrorId === b.id ? (
+                <p role="alert" className="basis-full text-right text-xs text-red-700">
+                  {t.common.error}. {t.common.retry}.
+                </p>
               ) : null}
             </div>
           </div>

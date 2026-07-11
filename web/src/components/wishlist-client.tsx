@@ -6,13 +6,14 @@ import { api, type WishlistItem } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth-storage";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatVnd } from "@/lib/utils";
-import { getDict, type Locale } from "@/lib/i18n";
+import { getDict, localeTag, type Locale } from "@/lib/i18n";
 
 export function WishlistClient({ locale }: { locale: Locale }) {
   const t = getDict(locale);
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   async function load() {
     const token = getAccessToken();
@@ -94,26 +95,36 @@ export function WishlistClient({ locale }: { locale: Locale }) {
                 {item.title ?? item.itemId}
               </Link>
               {item.priceFromVnd != null ? (
-                <div className="mt-1 text-sm text-muted">{formatVnd(item.priceFromVnd)}</div>
+                <div className="mt-1 text-sm text-muted">{formatVnd(item.priceFromVnd, localeTag(locale))}</div>
               ) : null}
             </div>
             <button
               type="button"
+              disabled={removingId === item.id}
               className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted hover:border-coral hover:text-coral"
               data-testid="wishlist-remove"
               onClick={async () => {
+                const confirmed = window.confirm(
+                  locale === "vi"
+                    ? "Xóa mục này khỏi danh sách yêu thích?"
+                    : "Remove this item from your wishlist?",
+                );
+                if (!confirmed) return;
                 const token = getAccessToken();
                 if (!token) return;
                 setError(null);
+                setRemovingId(item.id);
                 try {
                   await api.removeWishlist(token, item.id);
                   setItems((prev) => prev.filter((x) => x.id !== item.id));
                 } catch (cause) {
                   setError(cause instanceof Error ? cause.message : t.common.error);
+                } finally {
+                  setRemovingId(null);
                 }
               }}
             >
-              {t.common.remove}
+              {removingId === item.id ? t.common.loading : t.common.remove}
             </button>
           </div>
         );

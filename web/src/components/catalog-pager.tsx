@@ -41,25 +41,19 @@ export function CatalogPager({ locale, basePath, page, limit, total, query = {} 
       data-total={total}
       data-page={page}
     >
-      <Link
-        href={href(Math.max(1, page - 1))}
-        className={`inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm ${page <= 1 ? "pointer-events-none opacity-40" : "hover:border-[#0064d2]"}`}
-        aria-disabled={page <= 1}
-        aria-label={t.common.prev}
-      >
-        ← {t.common.prev}
-      </Link>
+      {page <= 1 ? (
+        <span aria-disabled="true" className="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm opacity-40">← {t.common.prev}</span>
+      ) : (
+        <Link href={href(page - 1)} className="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm hover:border-[#0064d2]" aria-label={t.common.prev}>← {t.common.prev}</Link>
+      )}
       <span className="text-sm text-muted">
         {t.common.page} {page} / {totalPages} · {total} {t.common.items}
       </span>
-      <Link
-        href={href(Math.min(totalPages, page + 1))}
-        className={`inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm ${page >= totalPages ? "pointer-events-none opacity-40" : "hover:border-[#0064d2]"}`}
-        aria-disabled={page >= totalPages}
-        aria-label={t.common.next}
-      >
-        {t.common.next} →
-      </Link>
+      {page >= totalPages ? (
+        <span aria-disabled="true" className="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm opacity-40">{t.common.next} →</span>
+      ) : (
+        <Link href={href(page + 1)} className="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm hover:border-[#0064d2]" aria-label={t.common.next}>{t.common.next} →</Link>
+      )}
     </nav>
   );
 }

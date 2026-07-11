@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { getDict, type Locale } from "@/lib/i18n";
 import { api } from "@/lib/api";
@@ -17,6 +17,21 @@ export function Navbar({ locale }: { locale: Locale }) {
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [admin, setAdmin] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const firstMobileLinkRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    firstMobileLinkRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,10 +155,12 @@ export function Navbar({ locale }: { locale: Locale }) {
         </div>
 
         <button
+          ref={menuButtonRef}
           type="button"
           className="inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-white/10 md:hidden"
           aria-label={t.common.menu}
           aria-expanded={open}
+          aria-controls="mobile-navigation"
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X /> : <Menu />}
@@ -151,11 +168,12 @@ export function Navbar({ locale }: { locale: Locale }) {
       </div>
 
       {open ? (
-        <div className="max-h-[70vh] overflow-y-auto border-t border-white/15 bg-[#0057b8] px-4 py-3 md:hidden">
-          <div className="flex flex-col gap-1">
-            {links.map((l) => (
+        <div id="mobile-navigation" className="max-h-[70vh] overscroll-contain overflow-y-auto border-t border-white/15 bg-[#0057b8] px-4 py-3 md:hidden">
+          <nav aria-label={t.common.primaryNav} className="flex flex-col gap-1">
+            {links.map((l, index) => (
               <Link
                 key={l.href}
+                ref={index === 0 ? firstMobileLinkRef : undefined}
                 href={l.href}
                 onClick={() => setOpen(false)}
                 className="inline-flex min-h-11 items-center rounded-md px-2 text-sm"
@@ -163,20 +181,6 @@ export function Navbar({ locale }: { locale: Locale }) {
                 {l.label}
               </Link>
             ))}
-            <Link
-              href={`/${locale}/ai`}
-              onClick={() => setOpen(false)}
-              className="inline-flex min-h-11 items-center rounded-md px-2 text-sm"
-            >
-              {t.nav.ai}
-            </Link>
-            <Link
-              href={`/${locale}/explore`}
-              onClick={() => setOpen(false)}
-              className="inline-flex min-h-11 items-center rounded-md px-2 text-sm"
-            >
-              {t.nav.explore}
-            </Link>
             <Link
               href={switched}
               onClick={() => setOpen(false)}
@@ -253,7 +257,7 @@ export function Navbar({ locale }: { locale: Locale }) {
                 </Link>
               </>
             )}
-          </div>
+          </nav>
         </div>
       ) : null}
     </header>

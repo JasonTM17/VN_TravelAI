@@ -15,12 +15,15 @@ export async function generateMetadata({
 
 export default async function FlightsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ from?: string; to?: string; date?: string }>;
 }) {
   const { locale: raw } = await params;
   const locale = (isLocale(raw) ? raw : "vi") as Locale;
   const t = getDict(locale);
+  const search = await searchParams;
 
   return (
     <div data-testid="content-ready">
@@ -30,7 +33,7 @@ export default async function FlightsPage({
       </h1>
       <p className="mt-2 text-sm text-muted">{t.catalog.mockFlights}</p>
       <div className="mt-8">
-        <FlightSearch locale={locale} />
+        <FlightSearch locale={locale} initialFrom={search.from} initialTo={search.to} initialDate={search.date} />
       </div>
     </div>
   );
