@@ -26,7 +26,7 @@ RUN groupadd -g 65532 nonroot && useradd -u 65532 -g 65532 -m nonroot
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+COPY --chown=65532:65532 --from=builder /app/.next ./.next
 COPY --from=builder /app/next.config.ts ./next.config.ts
 ARG BUILD_SHA=dev
 LABEL org.opencontainers.image.source="https://github.com/JasonTM17/VN_TravelAI"

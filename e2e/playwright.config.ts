@@ -7,7 +7,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   use: {
-    baseURL: process.env.WEB_URL ?? "http://127.0.0.1:53000",
+    // Keep the browser and NEXT_PUBLIC service URLs on the same hostname so
+    // SameSite refresh cookies behave exactly as they do in a real deployment.
+    baseURL: process.env.WEB_URL ?? "http://localhost:53000",
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

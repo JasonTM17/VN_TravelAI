@@ -4,8 +4,8 @@ import { test, expect } from "@playwright/test";
  * Real-app auth flow: register → change password → old fails → new works.
  * Uses unique email per run. Runs against local overlay ports by default.
  */
-const WEB = process.env.BASE_WEB ?? "http://127.0.0.1:53000";
-const IDENTITY = process.env.BASE_IDENTITY ?? "http://127.0.0.1:53002";
+const WEB = process.env.BASE_WEB ?? "http://localhost:53000";
+const IDENTITY = process.env.BASE_IDENTITY ?? "http://localhost:53002";
 
 test.describe("auth register + change password", () => {
   test("API: register, change password, re-login", async ({ request }) => {
@@ -83,5 +83,4 @@ test.describe("auth register + change password", () => {
     await expect(page).not.toHaveURL(/\/login/);
   });
 });
-
 
