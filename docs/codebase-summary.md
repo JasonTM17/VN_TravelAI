@@ -1,7 +1,7 @@
 # Codebase summary — TravelAI
 
 **Purpose:** Bản đồ monorepo cho onboarding.  
-**Last verified:** `9f4d424`
+**Last verified:** `193b95e`
 
 ## 1. Hình dạng repo
 
@@ -84,7 +84,7 @@ VN_TravelAI/
 | Unit Vitest | `identity\|api\|ai\|web` `*.test.ts` |
 | E2E Playwright | `e2e/tests/` |
 | CI | `.github/workflows/ci.yml` (unit + lint hard-fail) |
-| E2E CI | `.github/workflows/e2e.yml` gated `E2E_ENABLED` |
+| E2E CI | `.github/workflows/e2e.yml` runs all Playwright specs and hard-fails |
 | Publish | `docker-publish.yml`, `release.yml` |
 | Security scans | trivy, codeql, gitleaks |
 

@@ -1,6 +1,6 @@
 # Testing overview
 
-**Last verified:** `9f4d424`
+**Last verified:** `193b95e`
 
 ## 1. Pyramid
 
@@ -8,7 +8,7 @@
 |-------|------|----------|-----|
 | Unit | Vitest | `identity|api|ai|web` `src/**/*.test.ts` | hard-fail on `pnpm test` |
 | Contract | Redocly | `docs/openapi.yaml` | job `openapi` |
-| E2E | Playwright | `e2e/tests/*.spec.ts` | gated `E2E_ENABLED` |
+| E2E | Playwright | `e2e/tests/*.spec.ts` | all specs hard-fail |
 | Scripts | node test / smoke | `scripts/` | local |
 
 ## 2. Run locally
@@ -41,9 +41,8 @@ cd e2e && pnpm test
 ## 4. Gaps (honest)
 
 - Full HTTP inject integration suite limited  
-- Concurrency/overselling tests N/A until inventory  
-- E2E not always-on in CI  
-- Lint still advisory in CI  
+- DB-backed concurrent pay/cancel integration coverage is still limited
+- Cross-browser E2E beyond Chromium not yet run in CI
 
 ## 5. Related
 

@@ -2,7 +2,7 @@
 
 **Purpose:** Local, image publish, và compose prod-like.  
 **Production cloud target:** UNKNOWN (không chọn AWS/Vercel/K8s trong docs).  
-**Last verified:** `9f4d424`
+**Last verified:** `193b95e`
 
 ## Mục lục
 
@@ -31,6 +31,8 @@ Chi tiết: [getting-started/local-setup.md](./getting-started/local-setup.md).
 
 ```bash
 # Set secrets: IDENTITY_JWT_PRIMARY_PRIVATE_KEY, DB passwords, MEILI_MASTER_KEY, REDIS_PASSWORD, N8N_HMAC_SECRET
+export IMAGE_TAG=sha-<full-git-commit-sha>
+export REDIS_PASSWORD=<strong-url-safe-random-password>
 export SEED_DEMO_USER=false RUN_SEED=false NODE_ENV=production
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
@@ -40,6 +42,7 @@ Prod overlay:
 - Pulls `nguyenson1710/travelai-*` (or rebuild GHCR `ghcr.io/jasontm17/travelai-*`)
 - Unpublishes Postgres/Redis/Meili host ports
 - Disables demo seed; requires JWT PEMs (`JWT_REQUIRE_PEM` / `NODE_ENV=production`)
+- Requires immutable `IMAGE_TAG` and authenticated Redis connections
 - MinIO only with profile `storage` (app does not use MinIO today)
 
 ## Images
@@ -53,10 +56,7 @@ Prod overlay:
 Dockerfiles use `pnpm install --frozen-lockfile`. Web `NEXT_PUBLIC_*` is bake-time — rebuild web image per environment with correct public URLs / `NEXT_PUBLIC_CSP_CONNECT_SRC`.
 
 ```bash
-docker pull ghcr.io/jasontm17/travelai-web:latest
-docker pull ghcr.io/jasontm17/travelai-api:latest
-docker pull ghcr.io/jasontm17/travelai-identity:latest
-docker pull ghcr.io/jasontm17/travelai-ai:latest
+docker pull ghcr.io/jasontm17/travelai-web:sha-<full-git-commit-sha>
 ```
 
 ## Environment checklist (prod)
@@ -65,6 +65,7 @@ docker pull ghcr.io/jasontm17/travelai-ai:latest
 |------|----------|
 | JWT primary PEM | yes |
 | Strong DB/Meili/Redis/HMAC secrets | yes |
+| Immutable `IMAGE_TAG` (`sha-...` or release tag) | yes |
 | `SEED_DEMO_USER=false` `RUN_SEED=false` | yes |
 | `CORS_ORIGINS` = real web origins | yes |
 | Public `NEXT_PUBLIC_*` match deploy host | yes (rebuild web) |
@@ -73,13 +74,7 @@ Full matrix: [environment-variables.md](./getting-started/environment-variables.
 
 ## E2E
 
-Local: stack up then `cd e2e && pnpm test`.  
-CI: set GitHub repo variable `E2E_ENABLED=true` to enable `.github/workflows/e2e.yml`:
-
-```bash
-gh variable set E2E_ENABLED --body "true"
-# requires Actions billing / runner minutes available
-```
+Local: stack up then `cd e2e && pnpm test`. CI runs every Playwright spec and fails when stack health or any spec fails.
 
 ## Cookie (identity refresh)
 

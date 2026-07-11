@@ -24,7 +24,7 @@
 | POSTGRES_DB | postgres | yes | no | yes | Catalog DB name | `travelai` | `.env.example` |
 | IDENTITY_DB | postgres | yes | no | yes | Identity DB name | `travelai_identity` | `.env.example` |
 | POSTGRES_HOST_PORT | host | no | no | yes | Published PG port | `5432` | `.env.example` |
-| REDIS_URL | redis clients | yes | partial | yes | Redis URL | `redis://redis:6379` | `.env.example` |
+| REDIS_URL | redis clients | yes | partial | yes | Redis URL; prod overlay derives authenticated URL from required `REDIS_PASSWORD` | `redis://redis:6379` | `.env.example` |
 | REDIS_HOST_PORT | host | no | no | yes | Published redis | `6379` | `.env.example` |
 | MEILI_MASTER_KEY | meili/api | yes | **yes** | yes | Meili key | `dev_key_change_me` | `.env.example` |
 | MEILI_HOST | api | yes | no | yes | Meili URL | `http://meilisearch:7700` | `.env.example` |
@@ -51,7 +51,7 @@
 | DEMO_USER_PASSWORD | identity | no | **yes** | yes | Demo seed password | `DemoTravelAI1!` | `.env.example` |
 | SEED_DEMO_USER | identity | no | no | yes | Gate demo seed | `true` local / `false` prod | `.env.example` |
 | CORS_ORIGINS | identity | prod yes | no | yes | CORS allowlist | `http://localhost:53000` | `.env.example` |
-| REDIS_URL | identity | no | partial | yes | Rate limit | `redis://redis:6379` | config |
+| REDIS_URL | identity | no | partial | yes | Rate limit; authenticated in prod overlay | `redis://redis:6379` | config |
 
 > [!CAUTION]
 > `SEED_DEMO_USER=true` + default demo password **chỉ local**. Production: `false`.
@@ -83,7 +83,7 @@
 |----------|---------|----------|--------|-------------|---------|--------------|--------|
 | AI_PORT / PORT | ai | no | no | yes | Listen | `3003` | example |
 | N8N_WEBHOOK_BASE_URL | ai | yes chat | no | yes | Webhook base | `http://chat-webhook:5678/webhook` local | compose.local |
-| N8N_HMAC_SECRET | ai + webhook | yes | **yes** | yes | HMAC SHA-256 | `long_random_dev` | example |
+| N8N_HMAC_SECRET | ai + webhook | yes | **yes** | yes | HMAC SHA-256; production requires 32+ characters | `long_random_dev` | example |
 | AI_DEGRADED_MODE | ai | no | no | yes | Force degrade | `false` | example |
 | API_BASE_URL | ai | yes RAG | no | yes | Catalog/vector RAG base | `http://api:3001` | compose / config |
 | IDENTITY_JWKS_URL | ai | yes | no | yes | Auth verify | identity JWKS | example |

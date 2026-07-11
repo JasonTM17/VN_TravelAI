@@ -1,7 +1,7 @@
 # Project roadmap — residual
 
 **Purpose:** Trạng thái sau product residual + ops close-out.  
-**Last verified:** `9f4d424` on `main` (MVP product path complete; ops/PSP residuals remain).
+**Last verified:** `193b95e` on `main` (MVP product path complete; real PSP remains out of scope).
 
 ## 1. Engineering baseline (hardening) — DONE
 
@@ -29,7 +29,7 @@
 |------|--------|-------|
 | CI unit/build hard-fail | COMPLETE | already |
 | CI lint hard-fail | COMPLETE | removed `continue-on-error` on lint |
-| `E2E_ENABLED` repo variable | PARTIAL | set via `gh` when permitted; workflow still gated |
+| Always-on Playwright E2E | COMPLETE | all specs hard-fail on main and pull requests |
 | Image Hub/GHCR rebuild | PARTIAL | trigger `docker-publish` when secrets/billing OK |
 | Real PSP | NOT IMPLEMENTED | product decision required |
 | User reviews write | COMPLETE path | POST /v1/reviews + FE form |

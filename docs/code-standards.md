@@ -1,7 +1,7 @@
 # Code standards — TravelAI
 
 **Purpose:** Chuẩn code đã quan sát trong repo + convention contributor.  
-**Last verified:** `9f4d424`
+**Last verified:** `193b95e`
 
 ## 1. Ngôn ngữ & toolchain
 
@@ -64,7 +64,7 @@
 | Surface | Command (host) | Note |
 |---------|----------------|------|
 | Unit | `node ./node_modules/vitest/vitest.mjs run` trong service dir | pnpm may block install scripts locally |
-| E2E | stack up → `cd e2e && pnpm test` | CI optional via `E2E_ENABLED` |
+| E2E | stack up → `cd e2e && pnpm test` | CI runs all specs; failures block |
 | OpenAPI | `npx @redocly/cli@1 lint docs/openapi.yaml --config redocly.yaml` | |
 
 ## 9. Related

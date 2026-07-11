@@ -212,7 +212,7 @@ npx --yes @redocly/cli@1 lint docs/openapi.yaml --config redocly.yaml
 cd e2e && pnpm test
 ```
 
-CI: unit hard-fail · lint advisory · e2e khi `E2E_ENABLED=true`.  
+CI: unit, lint, build, OpenAPI, Trivy High/Critical và toàn bộ Playwright E2E đều hard-fail.
 Xem [`docs/testing/overview.md`](docs/testing/overview.md).
 
 ---
@@ -227,13 +227,13 @@ Xem [`docs/testing/overview.md`](docs/testing/overview.md).
 
 ```bash
 # GitHub Container Registry (shows under repo Packages)
-docker pull ghcr.io/jasontm17/travelai-web:latest
-docker pull ghcr.io/jasontm17/travelai-api:latest
-docker pull ghcr.io/jasontm17/travelai-identity:latest
-docker pull ghcr.io/jasontm17/travelai-ai:latest
+docker pull ghcr.io/jasontm17/travelai-web:sha-<full-git-commit-sha>
+docker pull ghcr.io/jasontm17/travelai-api:sha-<full-git-commit-sha>
+docker pull ghcr.io/jasontm17/travelai-identity:sha-<full-git-commit-sha>
+docker pull ghcr.io/jasontm17/travelai-ai:sha-<full-git-commit-sha>
 ```
 
-Publish flow: push `main` → `docker-publish` builds/pushes Hub + GHCR · tag `v0.1.0` or Actions → **release** workflow creates GitHub Release.
+Publish flow: `ci` và toàn bộ Playwright E2E xanh trên `main` → `docker-publish` builds/pushes GHCR và Docker Hub khi credentials tồn tại. Production pin `IMAGE_TAG=sha-<full-git-commit-sha>`; không deploy bằng `latest`.
 
 ---
 
@@ -279,7 +279,7 @@ scripts/      Smoke, image audit, DeepSeek helpers
 | Native Flutter apps | OUT_OF_SCOPE |
 | Traveloka partner integration | OUT_OF_SCOPE |
 | RAG / tool-calling / SSE / chat DB | COMPLETE path |
-| Always-on CI e2e | PARTIAL (`E2E_ENABLED`) |
+| Always-on CI e2e | COMPLETE (all Playwright specs hard-fail) |
 | Docker Hub/GHCR publish | Tooling COMPLETE; may need billing/secrets |
 | Cloud production host | UNKNOWN |
 

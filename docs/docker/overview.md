@@ -1,6 +1,6 @@
 # Docker overview
 
-**Last verified:** `9f4d424`
+**Last verified:** `193b95e`
 
 ## 1. Compose files
 
@@ -34,6 +34,8 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 ```bash
 # secrets via env / secret manager — never bake into image
+export IMAGE_TAG=sha-<full-git-commit-sha>
+export REDIS_PASSWORD=<strong-url-safe-random-password>
 export SEED_DEMO_USER=false RUN_SEED=false NODE_ENV=production
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
@@ -48,10 +50,7 @@ Web `NEXT_PUBLIC_*` is **build-time** — rebuild web image per environment.
 | GHCR | `ghcr.io/jasontm17/travelai-*` | latest, SHA | same | `GITHUB_TOKEN` packages | CONFIRMED workflow |
 
 ```bash
-docker pull ghcr.io/jasontm17/travelai-web:latest
-docker pull ghcr.io/jasontm17/travelai-api:latest
-docker pull ghcr.io/jasontm17/travelai-identity:latest
-docker pull ghcr.io/jasontm17/travelai-ai:latest
+docker pull ghcr.io/jasontm17/travelai-web:sha-<full-git-commit-sha>
 ```
 
 ## 6. Security posture
