@@ -44,24 +44,31 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Verify CI passed for the same commit
+      - name: Verify required checks passed for the same commit
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           for attempt in $(seq 1 30); do
-            conclusion="$(gh run list --workflow ci.yml --commit "$HEAD_SHA" --limit 1 --json conclusion --jq '.[0].conclusion // ""')"
-            if [ "$conclusion" = "success" ]; then
+            all_success=true
+            for workflow in ci.yml trivy.yml codeql.yml gitleaks.yml; do
+              conclusion="$(gh run list --workflow "$workflow" --commit "$HEAD_SHA" --limit 1 --json conclusion --jq '.[0].conclusion // ""')"
+              if [ "$conclusion" = "success" ]; then
+                continue
+              fi
+              all_success=false
+              if [ -n "$conclusion" ] && [ "$conclusion" != "in_progress" ] && [ "$conclusion" != "queued" ]; then
+                echo "$workflow for $HEAD_SHA failed with conclusion: $conclusion"
+                exit 1
+              fi
+            done
+            if [ "$all_success" = "true" ]; then
               exit 0
-            fi
-            if [ -n "$conclusion" ] && [ "$conclusion" != "in_progress" ] && [ "$conclusion" != "queued" ]; then
-              echo "CI for $HEAD_SHA failed with conclusion: $conclusion"
-              exit 1
             fi
             sleep 20
           done
-          echo "CI for $HEAD_SHA did not complete successfully within 10 minutes."
+          echo "Required checks for $HEAD_SHA did not complete successfully within 10 minutes."
           exit 1
 
       - name: Set up QEMU
