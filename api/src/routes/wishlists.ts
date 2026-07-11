@@ -21,29 +21,40 @@ export async function wishlistRoutes(
       orderBy: { createdAt: "desc" },
     });
 
-    const data = await Promise.all(
-      rows.map(async (row) => {
+    const hotelIds = rows.filter((row) => row.itemType === "hotel").map((row) => row.itemId);
+    const tourIds = rows.filter((row) => row.itemType === "tour").map((row) => row.itemId);
+    const destinationIds = rows.filter((row) => row.itemType === "destination").map((row) => row.itemId);
+    const [hotels, tours, destinations] = await Promise.all([
+      prisma.hotel.findMany({ where: { id: { in: hotelIds } } }),
+      prisma.tour.findMany({ where: { id: { in: tourIds } } }),
+      prisma.destination.findMany({ where: { id: { in: destinationIds } } }),
+    ]);
+    const hotelsById = new Map(hotels.map((item) => [item.id, item]));
+    const toursById = new Map(tours.map((item) => [item.id, item]));
+    const destinationsById = new Map(destinations.map((item) => [item.id, item]));
+
+    const data = rows.map((row) => {
         let title = row.itemId;
         let slug: string | null = null;
         let priceFromVnd: number | null = null;
         let hrefKind: "hotel" | "tour" | "destination" = row.itemType;
 
         if (row.itemType === "hotel") {
-          const h = await prisma.hotel.findUnique({ where: { id: row.itemId } });
+          const h = hotelsById.get(row.itemId);
           if (h) {
             title = h.name;
             slug = h.slug;
             priceFromVnd = h.priceFromVnd;
           }
         } else if (row.itemType === "tour") {
-          const t = await prisma.tour.findUnique({ where: { id: row.itemId } });
+          const t = toursById.get(row.itemId);
           if (t) {
             title = t.titleVi;
             slug = t.slug;
             priceFromVnd = t.priceFromVnd;
           }
         } else if (row.itemType === "destination") {
-          const d = await prisma.destination.findUnique({ where: { id: row.itemId } });
+          const d = destinationsById.get(row.itemId);
           if (d) {
             title = d.nameVi;
             slug = d.slug;
@@ -60,8 +71,7 @@ export async function wishlistRoutes(
           hrefKind,
           createdAt: row.createdAt,
         };
-      }),
-    );
+      });
 
     return { success: true, data };
   });

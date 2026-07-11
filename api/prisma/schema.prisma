@@ -255,12 +255,14 @@ model Booking {
   contactName    String?          @map("contact_name")
   contactEmail   String?          @map("contact_email")
   contactPhone   String?          @map("contact_phone")
-  idempotencyKey String?          @unique @map("idempotency_key")
+  idempotencyKey String?          @map("idempotency_key")
+  requestFingerprint String?      @map("request_fingerprint")
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   paymentAttempts PaymentAttempt[]
 
   @@index([userId])
+  @@unique([userId, idempotencyKey])
   @@map("bookings")
 }
 

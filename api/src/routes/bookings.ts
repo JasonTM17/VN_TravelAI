@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
 import { sendProblem } from "../lib/problem.js";
+import { fingerprintBookingRequest, idempotencyRequestMatches } from "../lib/booking-idempotency.js";
 import type { createAuthGuard } from "../lib/auth.js";
 import { applyPayment, canTransition, type BookingStatus } from "../lib/booking-state.js";
 import { canReserveSeats, isSeatInventoryType, seatsUpdateFilter } from "../lib/inventory.js";
@@ -53,8 +54,14 @@ export async function bookingRoutes(
     if (!idempotencyKey || typeof idempotencyKey !== "string") {
       return sendProblem(reply, 400, "Validation error", "Idempotency-Key header required");
     }
-    const existing = await prisma.booking.findUnique({ where: { idempotencyKey } });
+    const requestFingerprint = fingerprintBookingRequest(parsed.data);
+    const existing = await prisma.booking.findUnique({
+      where: { userId_idempotencyKey: { userId: user.id, idempotencyKey } },
+    });
     if (existing) {
+      if (!idempotencyRequestMatches(existing.requestFingerprint, requestFingerprint)) {
+        return sendProblem(reply, 409, "Conflict", "Idempotency-Key was used with a different request");
+      }
       return reply.status(200).send({ success: true, data: existing });
     }
 
@@ -188,13 +195,19 @@ export async function bookingRoutes(
           contactEmail: contactEmail ?? user.email,
           contactPhone,
           idempotencyKey,
+          requestFingerprint,
         },
       });
       return reply.status(201).send({ success: true, data: booking });
     } catch (err) {
       const code = (err as { code?: string })?.code;
       if (code === "P2002") {
-        const again = await prisma.booking.findUnique({ where: { idempotencyKey } });
+        const again = await prisma.booking.findUnique({
+          where: { userId_idempotencyKey: { userId: user.id, idempotencyKey } },
+        });
+        if (again && !idempotencyRequestMatches(again.requestFingerprint, requestFingerprint)) {
+          return sendProblem(reply, 409, "Conflict", "Idempotency-Key was used with a different request");
+        }
         if (again) return reply.status(200).send({ success: true, data: again });
       }
       throw err;
@@ -232,6 +245,12 @@ export async function bookingRoutes(
 
     try {
       const updated = await prisma.$transaction(async (tx) => {
+        const claimed = await tx.booking.updateMany({
+          where: { id, userId: user.id, status: booking.status },
+          data: { status: decision.status },
+        });
+        if (claimed.count === 0) throw new Error("ALREADY_TRANSITIONED");
+
         if (isSeatInventoryType(booking.itemType)) {
           if (booking.itemType === "flight") {
             const r = await tx.flight.updateMany({
@@ -279,10 +298,7 @@ export async function bookingRoutes(
           }
         }
 
-        const row = await tx.booking.update({
-          where: { id },
-          data: { status: decision.status },
-        });
+        const row = await tx.booking.findUniqueOrThrow({ where: { id } });
         await tx.paymentAttempt.create({
           data: { bookingId: booking.id, outcome: "success" },
         });
@@ -298,6 +314,11 @@ export async function bookingRoutes(
     } catch (err) {
       if (err instanceof Error && err.message === "INVENTORY") {
         return sendProblem(reply, 409, "Conflict", "Not enough seats to confirm booking");
+      }
+      if (err instanceof Error && err.message === "ALREADY_TRANSITIONED") {
+        const current = await prisma.booking.findFirst({ where: { id, userId: user.id } });
+        if (current?.status === "confirmed") return { success: true, data: current };
+        return sendProblem(reply, 409, "Conflict", `Cannot pay booking in status ${current?.status ?? "unknown"}`);
       }
       throw err;
     }
@@ -317,8 +338,15 @@ export async function bookingRoutes(
       return sendProblem(reply, 409, "Conflict", `Cannot cancel booking in status ${booking.status}`);
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
-      if (booking.status === "confirmed" && isSeatInventoryType(booking.itemType)) {
+    try {
+      const updated = await prisma.$transaction(async (tx) => {
+        const claimed = await tx.booking.updateMany({
+          where: { id, userId: user.id, status: booking.status },
+          data: { status: "cancelled" },
+        });
+        if (claimed.count === 0) throw new Error("ALREADY_TRANSITIONED");
+
+        if (booking.status === "confirmed" && isSeatInventoryType(booking.itemType)) {
         if (booking.itemType === "flight") {
           await tx.flight.updateMany({
             where: { id: booking.itemId },
@@ -339,12 +367,17 @@ export async function bookingRoutes(
             data: { roomsLeft: { increment: 1 } },
           });
         }
-      }
-      return tx.booking.update({
-        where: { id },
-        data: { status: "cancelled" },
+        }
+        return tx.booking.findUniqueOrThrow({ where: { id } });
       });
-    });
-    return { success: true, data: updated };
+      return { success: true, data: updated };
+    } catch (err) {
+      if (err instanceof Error && err.message === "ALREADY_TRANSITIONED") {
+        const current = await prisma.booking.findFirst({ where: { id, userId: user.id } });
+        if (current?.status === "cancelled") return { success: true, data: current };
+        return sendProblem(reply, 409, "Conflict", `Cannot cancel booking in status ${current?.status ?? "unknown"}`);
+      }
+      throw err;
+    }
   });
 }
