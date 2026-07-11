@@ -167,19 +167,18 @@ export async function authRoutes(
     }
     const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
     if (!ok) {
-      const failed = user.failedLoginCount + 1;
-      const lockedUntil =
-        failed >= config.LOCKOUT_THRESHOLD
-          ? new Date(Date.now() + config.LOCKOUT_MINUTES * 60_000)
-          : null;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLoginCount: failed,
-          lockedUntil,
-        },
+      const failedUser = await prisma.$transaction(async (tx) => {
+        const incremented = await tx.user.update({
+          where: { id: user.id },
+          data: { failedLoginCount: { increment: 1 } },
+        });
+        if (incremented.failedLoginCount < config.LOCKOUT_THRESHOLD) return incremented;
+        return tx.user.update({
+          where: { id: user.id },
+          data: { lockedUntil: new Date(Date.now() + config.LOCKOUT_MINUTES * 60_000) },
+        });
       });
-      if (lockedUntil) {
+      if (failedUser.lockedUntil) {
         return sendProblem(reply, 423, "Locked", "Too many failed attempts");
       }
       return sendProblem(reply, 401, "Unauthorized", "Invalid credentials");
@@ -231,20 +230,30 @@ export async function authRoutes(
       clearRefreshCookie(reply);
       return sendProblem(reply, 401, "Unauthorized", "Invalid refresh token");
     }
-    // Rotate: revoke old, issue new
-    await prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revokedAt: new Date() },
-    });
     const { accessToken, expiresIn } = await mintAccessToken(stored.user, primary, config);
     const refreshRaw = mintRefreshToken();
-    await prisma.refreshToken.create({
-      data: {
-        userId: stored.userId,
-        tokenHash: hashToken(refreshRaw),
-        expiresAt: new Date(Date.now() + config.REFRESH_TOKEN_TTL_SEC * 1000),
-      },
-    });
+    try {
+      await prisma.$transaction(async (tx) => {
+        const revoked = await tx.refreshToken.updateMany({
+          where: { id: stored.id, revokedAt: null, expiresAt: { gt: new Date() } },
+          data: { revokedAt: new Date() },
+        });
+        if (revoked.count !== 1) throw new Error("REFRESH_ALREADY_ROTATED");
+        await tx.refreshToken.create({
+          data: {
+            userId: stored.userId,
+            tokenHash: hashToken(refreshRaw),
+            expiresAt: new Date(Date.now() + config.REFRESH_TOKEN_TTL_SEC * 1000),
+          },
+        });
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === "REFRESH_ALREADY_ROTATED") {
+        clearRefreshCookie(reply);
+        return sendProblem(reply, 401, "Unauthorized", "Invalid refresh token");
+      }
+      throw err;
+    }
     setRefreshCookie(reply, refreshRaw);
     return {
       success: true,
