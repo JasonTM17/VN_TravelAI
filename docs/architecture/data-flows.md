@@ -1,6 +1,6 @@
 # Data flows
 
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Catalog browse (SSR)
 
@@ -42,16 +42,16 @@ Evidence: `identity` auth routes, `web/src/lib/auth-storage.ts`, `web/src/lib/ap
 
 ```
 BookButton (± roomTypeId, ratePlanId)
-  → POST /v1/bookings (+ Idempotency-Key)
-  → hotel: ensure night inventory for room type; price from rate plan
+  → POST /v1/bookings (+ Idempotency-Key bound to the request payload)
+  → hotel: availability check for room type; price from rate plan (no reservation yet)
   default: redirect /bookings
   optional NEXT_PUBLIC_BOOK_AUTOPAY → pay success
-BookingsClient → POST .../pay {outcome}
-               → decrement seats/nights + notifyBookingConfirmed
-               → POST .../cancel (restore if confirmed)
+BookingsClient → atomic POST .../pay {outcome}
+               → decrement seats/nights once + notifyBookingConfirmed
+               → atomic POST .../cancel (restore once if previously confirmed)
 ```
 
-Payment: **MOCK** only. Email: SMTP / HTTP gateway / log.
+Payment: **MOCK** only. Inventory is atomically consumed on successful pay, not create. Duplicate/retried transitions are transaction-protected. Notification is fire-and-forget after commit, so confirmed does not guarantee email delivery.
 
 ## 5. Wishlist & reviews
 
@@ -63,11 +63,16 @@ Auth → POST /v1/reviews (hotelId or tourId)
 ## 6. AI chat
 
 ```
-ChatbotWidget (Bearer)
-  → POST /v1/chat or /v1/chat/stream
-  → ai retrieveCatalogContext(API Meili + vectors)
-  → redis RL → HMAC webhook → DeepSeek tools OR degraded
-  → optional persist messages via api chat-history
+Non-stream: ChatbotWidget → POST /v1/chat (Bearer)
+  → Redis RL → sign/send identical JSON bytes via HMAC webhook
+  → n8n/chat-webhook → DeepSeek read-only tools OR degraded
+
+Stream: ChatbotWidget → POST /v1/chat/stream (Bearer)
+  → bounded recent conversation history (max 10 messages)
+  → shared Redis RL → retrieveCatalogContext(API Meili + vectors in parallel)
+  → direct DeepSeek SSE (meta → token* → done) OR degraded SSE
+
+After either response, web best-effort persists messages via API chat-history and stores the conversation ID for session restore.
 ```
 
 ## 7. Admin reindex
@@ -80,7 +85,7 @@ Requires admin role JWT (+ optional X-Admin-Token)
 
 ## 8. Error / logging
 
-- Validation: Zod → 400 problem/detail  
+- Validation: Zod → 400; problem-detail shape is not yet uniform across services
 - Auth fail: 401  
 - Rate limit: 429 where implemented  
 - Logs: service logger; correlation `x-request-id`  

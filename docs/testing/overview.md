@@ -1,6 +1,6 @@
 # Testing overview
 
-**Last verified:** `193b95e`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Pyramid
 
@@ -10,6 +10,8 @@
 | Contract | Redocly | `docs/openapi.yaml` | job `openapi` |
 | E2E | Playwright | `e2e/tests/*.spec.ts` | all specs hard-fail |
 | Scripts | node test / smoke | `scripts/` | local |
+
+Container publication is a downstream gate: successful E2E triggers `docker-publish`, which then requires same-commit `ci.yml`, `trivy.yml`, `codeql.yml`, and `gitleaks.yml` success before any push.
 
 ## 2. Run locally
 

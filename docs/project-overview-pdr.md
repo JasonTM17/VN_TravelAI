@@ -3,7 +3,7 @@
 **Purpose:** Mô tả sản phẩm, phạm vi, và yêu cầu phát triển dựa trên repository thực tế.  
 **Product name (UI):** TravelAI  
 **Repo:** `JasonTM17/VN_TravelAI`  
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Tóm tắt sản phẩm
 
@@ -21,7 +21,7 @@ TravelAI là **marketplace du lịch web** (UX kiểu Traveloka) tập trung cat
 | Global chatbot + AI planner (DeepSeek + RAG + tools + SSE) | COMPLETE path (live khi có key; else degraded) |
 | Admin Meili reindex + vector reindex + audit | COMPLETE |
 | Responsive mobile web | COMPLETE (demo UX) |
-| Docker multi-service + registries | COMPLETE tooling; deploy target production = UNKNOWN |
+| Docker multi-service + registries | COMPLETE; 4 private GHCR packages verified; cloud target = UNKNOWN |
 
 ## 2. Mục tiêu sản phẩm (PDR)
 
@@ -60,7 +60,7 @@ TravelAI là **marketplace du lịch web** (UX kiểu Traveloka) tập trung cat
 | FR-01 | Catalog destinations/hotels/tours | COMPLETE | `api/src/routes/catalog.ts`, seed |
 | FR-02 | Unified search | COMPLETE | `GET /v1/search`, Meili |
 | FR-03 | Auth + lockout + dual JWKS + httpOnly refresh | COMPLETE | `identity/` |
-| FR-04 | Booking create/list/pay/cancel | COMPLETE + MOCK pay | `api/src/routes/bookings.ts` |
+| FR-04 | Booking create/list/pay/cancel, atomic transitions + idempotent retries | COMPLETE + MOCK pay | `api/src/routes/bookings.ts` |
 | FR-04b | Hotel room type + rate plan + night inventory | COMPLETE demo | `HotelRoomType`, `RatePlan`, `hotel-night-inventory` |
 | FR-05 | Chat + SSE + degraded fallback | COMPLETE path | `ai/src/main.ts`, `/v1/chat/stream` |
 | FR-05b | Catalog RAG (Meili + vectors) | COMPLETE path | `ai/src/lib/catalog-rag.ts`, `api` vector-store |
@@ -78,7 +78,7 @@ TravelAI là **marketplace du lịch web** (UX kiểu Traveloka) tập trung cat
 | Security | Fail-closed JWT PEM prod; CORS allowlist; Meili sanitize; raw HMAC; httpOnly refresh | COMPLETE baseline |
 | Observability | healthz/readyz/metrics + x-request-id | PARTIAL (no full OTel) |
 | Containers | multi-stage, non-root, frozen-lockfile | COMPLETE |
-| Tests | Vitest unit hard-fail CI; Playwright local; e2e CI gated | PARTIAL |
+| Tests | Vitest/lint/build/OpenAPI + Playwright hard-fail; Trivy/CodeQL/Gitleaks gate publish | COMPLETE baseline |
 | Performance budgets | `docs/lighthouse-budgets.md` | PARTIAL enforcement |
 
 ## 6. Success metrics (engineering)
@@ -94,5 +94,5 @@ TravelAI là **marketplace du lịch web** (UX kiểu Traveloka) tập trung cat
 |------|--------|
 | Real PSP | NOT IMPLEMENTED (product decision) |
 | Cloud production host | UNKNOWN |
-| Docker Hub/GHCR publish | tooling COMPLETE; may need billing/secrets |
+| GHCR publish | COMPLETE; private `web/api/identity/ai`, tags `latest` + SHA |
 | OTel / central logs | NOT IMPLEMENTED in-repo |

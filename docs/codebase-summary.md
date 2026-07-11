@@ -1,7 +1,7 @@
 # Codebase summary — TravelAI
 
 **Purpose:** Bản đồ monorepo cho onboarding.  
-**Last verified:** `193b95e`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Hình dạng repo
 
@@ -85,8 +85,10 @@ VN_TravelAI/
 | E2E Playwright | `e2e/tests/` |
 | CI | `.github/workflows/ci.yml` (unit + lint hard-fail) |
 | E2E CI | `.github/workflows/e2e.yml` runs all Playwright specs and hard-fails |
-| Publish | `docker-publish.yml`, `release.yml` |
-| Security scans | trivy, codeql, gitleaks |
+| Publish | `docker-publish.yml` after E2E and same-commit CI/security gates; `release.yml` for `v*` |
+| Security scans | Trivy, CodeQL, Gitleaks; all gate image publishing |
+
+Verified distribution state: four private GHCR packages (`travelai-web`, `travelai-api`, `travelai-identity`, `travelai-ai`) contain `latest` and `sha-a796b9479186368a806c00b4496ffa9e356abadc`. Latest GitHub release is `v0.2.0`; that release did not create semver container tags.
 
 ## 7. Docs & design assets
 

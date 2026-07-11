@@ -1,6 +1,6 @@
 # Docker overview
 
-**Last verified:** `193b95e`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Compose files
 
@@ -47,11 +47,13 @@ Web `NEXT_PUBLIC_*` is **build-time** — rebuild web image per environment.
 | Registry | Image | Tags | Workflow | Auth | Status |
 |----------|-------|------|----------|------|--------|
 | Docker Hub | `nguyenson1710/travelai-*` | latest, SHA | `docker-publish.yml` | `DOCKERHUB_USERNAME`/`TOKEN` secrets | CONFIRMED workflow |
-| GHCR | `ghcr.io/jasontm17/travelai-*` | latest, SHA | same | `GITHUB_TOKEN` packages | CONFIRMED workflow |
+| GHCR | `ghcr.io/jasontm17/travelai-*` | latest, SHA | same | `GITHUB_TOKEN` + package Actions access | VERIFIED private packages |
 
 ```bash
 docker pull ghcr.io/jasontm17/travelai-web:sha-<full-git-commit-sha>
 ```
+
+Verified at `a796b94`: all four GHCR packages contain `latest` and the full SHA tag. The publish job validates same-commit CI, Trivy, CodeQL and Gitleaks after E2E succeeds. Although metadata supports semver on tag events, the current `workflow_run` path produced no `v0.2.0` image tag.
 
 ## 6. Security posture
 

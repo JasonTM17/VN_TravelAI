@@ -1,7 +1,7 @@
 # System architecture — TravelAI
 
 **Purpose:** Kiến trúc runtime và ranh giới service.  
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Overview
 
@@ -53,14 +53,16 @@ Chi tiết: [ADR-0006](./adr/0006-ed25519-jwt-auth.md), [data-flows](./architect
 ## 4. Booking & inventory
 
 ```
-create (pending_payment) + Idempotency-Key
-  hotel → room type + rate plan (default STD/BAR) → night inventory check
+create (pending_payment) + Idempotency-Key (scoped to user; same payload replays safely)
+  hotel → room type + rate plan (default STD/BAR) → availability check only; create does not reserve
   flight/transport → seats check
-→ mock pay → confirmed → decrement inventory + email notify
-→ cancel → restore inventory when confirmed
+→ atomic mock pay → confirmed → decrement inventory once + email notify
+→ atomic cancel → restore inventory once when previously confirmed
 ```
 
-- Payment **MOCK** — `PaymentAttempt` ledger, không PSP webhook  
+- Payment **MOCK** — `PaymentAttempt` ledger; pay/cancel claims and inventory mutation share DB transactions; inventory is consumed only on successful pay
+- Confirmation commits before fire-and-forget notification; successful pay does not guarantee email delivery
+- Current date parsing accepts `YYYY-MM-DD` shape but is not strict calendar validation; stay enumeration falls back for `end <= start` and caps at 61 nights. Treat as a documented limitation pending stricter rejection.
 - Hotel PMS: `HotelRoomType`, `RatePlan`, `HotelNightInventory` (per room type when set)  
 Evidence: `api/src/routes/bookings.ts`, `api/src/lib/hotel-night-inventory.ts`, `api/src/lib/pms.ts`.
 
@@ -80,10 +82,14 @@ ADR Meili: [0007](./adr/0007-meilisearch-catalog-search.md).
 ## 6. AI
 
 ```
-POST /v1/chat | /v1/chat/stream (JWT)
-  → Meili + vector catalog RAG (API)
-  → rate limit → HMAC webhook → DeepSeek tools | degraded template
-  → optional chat message persist (api chat-history)
+POST /v1/chat (JWT)
+  → shared Redis RL → HMAC webhook → DeepSeek read-only tools | degraded
+
+POST /v1/chat/stream (JWT)
+  → shared Redis RL → parallel Meili/vector RAG → direct DeepSeek SSE | degraded
+  → bounded client history (max 10); session-scoped conversation restore
+
+Web best-effort persists messages to API chat-history after generation.
 ```
 
 | Capability | Status |
@@ -93,7 +99,7 @@ POST /v1/chat | /v1/chat/stream (JWT)
 | Meili + vector RAG | COMPLETE path |
 | Read-only tool-calling | COMPLETE path |
 | SSE streaming | COMPLETE path |
-| Chat conversation/message DB | COMPLETE path |
+| Chat conversation/message DB | COMPLETE path; client best-effort persistence |
 
 Local: `docker-compose.local.yml` → `chat-webhook`.  
 Base: n8n + `infra/n8n/workflows/` (import thủ công — DISCONNECTED auto).  

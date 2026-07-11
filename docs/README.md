@@ -2,7 +2,7 @@
 
 **Mục đích:** Index chính thức cho developer, reviewer và operator.  
 **Source of truth:** source code, compose, schema, OpenAPI, ADR, CI.  
-**Last verified:** commit `9f4d424` (2026-07-10).
+**Last verified:** commit `a796b94` (2026-07-11).
 
 ## Bắt đầu nhanh
 
@@ -75,6 +75,7 @@
 | Label | Ý nghĩa |
 |-------|---------|
 | CONFIRMED / COMPLETE | Có code + tích hợp thật |
+| COMPLETE path | Runtime path đã triển khai/testable; dependency hoặc cấu hình live bên ngoài có thể chưa được chứng minh |
 | PARTIAL | Có code, chưa đủ production depth |
 | MOCK | Stub / mock (vd. payment) |
 | DISCONNECTED | Artifact có nhưng path runtime không dùng (vd. n8n JSON vs chat-webhook local) |

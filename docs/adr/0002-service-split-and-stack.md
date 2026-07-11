@@ -4,7 +4,7 @@ Date: 2026-07-09
 
 ## Status
 
-Accepted
+Superseded in part by [ADR-0003](./0003-fastify-backends.md): the service split remains accepted, while API and identity use Fastify rather than NestJS. MinIO remains an optional disconnected profile, not an active application data plane.
 
 ## Context
 

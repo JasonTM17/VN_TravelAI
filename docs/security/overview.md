@@ -1,6 +1,6 @@
 # Security overview
 
-**Last verified:** `9f4d424`  
+**Last verified:** `a796b94` (2026-07-11)
 **Reporting:** [SECURITY.md](../../SECURITY.md) — không mở public issue cho lỗ hổng.
 
 ## 1. AuthN / AuthZ
@@ -51,7 +51,8 @@
 |---------|--------|
 | Non-root images | COMPLETE |
 | Demo seed gated | COMPLETE `SEED_DEMO_USER` |
-| Gitleaks / Trivy / CodeQL workflows | present |
+| Gitleaks / Trivy / CodeQL workflows | COMPLETE; same-commit success gates image publish |
+| GHCR packages | Private; repository Actions access granted; immutable SHA tags available |
 
 ## 6. Payment & mail
 

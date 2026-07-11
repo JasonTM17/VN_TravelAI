@@ -1,6 +1,6 @@
 # Services overview
 
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## Application services
 

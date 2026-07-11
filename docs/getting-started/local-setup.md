@@ -2,6 +2,7 @@
 
 **Purpose:** Chạy TravelAI trên máy dev.  
 **Prerequisites:** Docker + Docker Compose, Git, (optional) Node 22 + pnpm cho native.
+**Last verified:** `a796b94` (2026-07-11).
 
 ## 1. Docker (khuyến nghị)
 
@@ -18,9 +19,14 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 | http://localhost:53001/healthz | API |
 | http://localhost:53002/healthz | Identity |
 | http://localhost:53003/healthz | AI |
+| localhost:55432 | PostgreSQL |
+| localhost:56379 | Redis |
+| http://localhost:57700 | Meilisearch |
+| http://localhost:55678 | Local chat-webhook |
+| http://localhost:55679 | n8n UI (when started) |
 
 > [!IMPORTANT]
-> Overlay local remap port **53000–53003** để tránh conflict stack khác trên 3000–3003.
+> Overlay local remap app ports **53000–53003** và infra ports ở bảng trên. Profile `storage` thêm MinIO `59000/59001`.
 
 ### Demo user (local only)
 
@@ -61,6 +67,8 @@ Infra tối thiểu:
 ```bash
 docker compose up -d postgres redis meilisearch
 ```
+
+Native processes cannot use Docker DNS names. Override database/Redis/Meili/JWKS URLs to `localhost` host ports before `pnpm dev`; run Prisma migration/generation for both API and identity. Root `.env` values using `postgres`, `redis`, or `meilisearch` are intended for containers.
 
 Mỗi service (ví dụ api):
 

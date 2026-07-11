@@ -1,6 +1,6 @@
 # Troubleshooting
 
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 Mỗi mục: symptoms → causes → diagnostics → resolution → verification → avoid.
 
@@ -72,9 +72,9 @@ Mỗi mục: symptoms → causes → diagnostics → resolution → verification
 ### Pull image fail
 
 1. **Symptoms:** prod compose pull 401/404  
-2. **Causes:** private package; missing login; wrong tag  
+2. **Causes:** private package; missing package-read login; wrong tag; assuming release `v0.2.0` also created semver image tags
 3. **Diagnostics:** `docker login ghcr.io` / hub  
-4. **Resolution:** auth; pin existing tag  
+4. **Resolution:** `docker login ghcr.io`; pin an existing immutable `sha-...` tag (`latest` is mutable)
 5. **Verification:** `docker pull …`  
 6. **Avoid:** force rebuild production without tag pin  
 

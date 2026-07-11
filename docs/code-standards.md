@@ -1,7 +1,7 @@
 # Code standards — TravelAI
 
 **Purpose:** Chuẩn code đã quan sát trong repo + convention contributor.  
-**Last verified:** `193b95e`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Ngôn ngữ & toolchain
 

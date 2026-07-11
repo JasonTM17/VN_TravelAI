@@ -1,13 +1,13 @@
 # Design guidelines — TravelAI UI
 
 **Purpose:** Ngôn ngữ UI quan sát được từ `web/` (không regenerate design binary).  
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Platform
 
 | Item | Value |
 |------|-------|
-| Framework | Next.js 15 App Router |
+| Framework | Next.js 15.5.18 App Router |
 | Styling | Tailwind CSS 4 |
 | Locales | `vi` (default), `en` |
 | Layout shell | Navbar + footer + chatbot FAB |
@@ -33,9 +33,10 @@
 ## 4. Accessibility & responsive
 
 - Mobile screenshots: `docs/media/09-mobile-home.png`, `10-mobile-gallery.png`
-- Touch-friendly targets on navbar/carousel (product claim; keep testing in e2e)
+- Responsive/touch intent is evidenced by components and screenshots; WCAG/accessibility conformance has not been audited end-to-end
 - CSP + security headers in `next.config.ts`
 - Prefer bilingual strings from i18n; avoid hard-coded EN-only in new UI
+- Require visible `focus-visible`, accessible labels, keyboard operation, reduced motion and tested empty/error/loading states for new interactions
 
 ## 5. SEO
 

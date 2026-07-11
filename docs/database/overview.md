@@ -1,7 +1,7 @@
 # Database overview
 
 **Engine:** PostgreSQL 16 · **ORM:** Prisma 6  
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Databases
 
@@ -62,7 +62,8 @@ Inventory:
 
 ## 5. Indexes & integrity
 
-- Unique: emails, slugs, refresh hash, booking idempotencyKey, room type code per hotel, rate plan code per room type, vector (sourceType, sourceId)  
+- Unique: emails, slugs, refresh hash, booking `(userId, idempotencyKey)`, room type code per hotel, rate plan code per room type, vector `(sourceType, sourceId)`
+- PostgreSQL permits multiple NULL values in `HotelNightInventory(hotelId, night, roomTypeId)`; the legacy hotel-wide (`roomTypeId=NULL`) fallback is not protected by that composite unique constraint. Default PMS paths use non-null room types; a partial unique index or `NULLS NOT DISTINCT` remains a schema hardening item.
 - Indexes: destination country, hotel price, flight/transport routes, nights  
 - Soft delete: **not** implemented  
 

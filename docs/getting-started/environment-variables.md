@@ -2,8 +2,12 @@
 
 **Purpose:** Inventory biến môi trường từ `.env.example`, `.env.production.example`, và service config.  
 **Rules:** Chỉ tên biến + safe example. **Không** copy giá trị từ file `.env` thật.
+**Last verified:** `a796b94` (2026-07-11).
 
 **Sources:** `.env.example`, `.env.production.example`, `*/src/config.ts`, compose files.
+
+> [!IMPORTANT]
+> `service config` means the process can read a variable; it does not prove Docker Compose forwards it. Unless a row/source says Compose, the variable is native/service-only. Current Compose forwards embedding/Pinecone keys to API and DeepSeek keys to AI, but still does **not** forward `COOKIE_*`, `ALLOW_BODY_REFRESH`, `METRICS_TOKEN`, API mail/admin vars, or web `NEXT_PUBLIC_CSP_CONNECT_SRC`, `NEXT_PUBLIC_BOOK_AUTOPAY`, `NEXT_PUBLIC_PERSIST_ACCESS`.
 
 ## Legend
 
@@ -19,6 +23,8 @@
 | Variable | Service | Required | Secret | Server-only | Purpose | Safe example | Source |
 |----------|---------|----------|--------|-------------|---------|--------------|--------|
 | COMPOSE_PROJECT_NAME | compose | no | no | yes | Project name | `travelai` | `.env.example` |
+| IMAGE_TAG | prod compose | prod yes | no | yes | Immutable container tag | `sha-<full-git-sha>` | `docker-compose.prod.yml` |
+| REDIS_PASSWORD | redis/clients | prod yes | **yes** | yes | Authenticated Redis password | `change_me` | `docker-compose.prod.yml` |
 | POSTGRES_USER | postgres | yes | no | yes | DB user | `travelai` | `.env.example` |
 | POSTGRES_PASSWORD | postgres | yes | **yes** | yes | DB password | `change_me` | `.env.example` |
 | POSTGRES_DB | postgres | yes | no | yes | Catalog DB name | `travelai` | `.env.example` |
@@ -31,7 +37,9 @@
 | MEILI_HOST_PORT | host | no | no | yes | Published Meili | `7700` | `.env.example` |
 | MINIO_ROOT_USER | minio | no* | **yes** | yes | MinIO user | `minioadmin` | `.env.example` |
 | MINIO_ROOT_PASSWORD | minio | no* | **yes** | yes | MinIO password | `minioadmin` | `.env.example` |
-| MINIO_BUCKET | minio | no* | no | yes | Bucket name | `travelai` | `.env.example` |
+| MINIO_BUCKET | minio | no* | no | yes | Reserved name; not consumed by app/Compose today | `travelai` | `.env.example` |
+| MINIO_HOST_PORT / MINIO_CONSOLE_PORT | host | no | no | yes | Optional MinIO ports | `9000` / `9001` | compose |
+| N8N_HOST_PORT | host | no | no | yes | n8n UI/webhook port | `5678` | compose |
 
 \*MinIO **DISCONNECTED** khỏi app code hiện tại; có trong compose.
 
@@ -50,7 +58,7 @@
 | DEMO_USER_EMAIL | identity | no | no | yes | Demo seed email | `demo@travelai.local` | `.env.example` |
 | DEMO_USER_PASSWORD | identity | no | **yes** | yes | Demo seed password | `DemoTravelAI1!` | `.env.example` |
 | SEED_DEMO_USER | identity | no | no | yes | Gate demo seed | `true` local / `false` prod | `.env.example` |
-| CORS_ORIGINS | identity | prod yes | no | yes | CORS allowlist | `http://localhost:53000` | `.env.example` |
+| IDENTITY_CORS_ORIGINS / CORS_ORIGINS | identity | prod yes | no | yes | CORS allowlist | `http://localhost:53000` | compose / example |
 | REDIS_URL | identity | no | partial | yes | Rate limit; authenticated in prod overlay | `redis://redis:6379` | config |
 
 > [!CAUTION]
@@ -111,9 +119,6 @@
 | IDENTITY_INTERNAL_URL | web SSR | Docker yes | no | yes | In-compose identity | `http://identity:3002` | compose |
 | AI_INTERNAL_URL | web SSR | Docker yes | no | yes | In-compose AI | `http://ai:3003` | compose |
 | NEXT_PUBLIC_DEMO_PREFILL | web | no | no | **no** | Prefill login form | local | deployment-guide |
-| API_INTERNAL_URL | web SSR | yes Docker | no | yes | Server-side API | `http://api:3001` | example |
-| IDENTITY_INTERNAL_URL | web SSR | no | no | yes | SSR identity | `http://identity:3002` | example |
-| AI_INTERNAL_URL | web SSR | no | no | yes | SSR AI | `http://ai:3003` | example |
 
 > [!WARNING]
 > Mọi `NEXT_PUBLIC_*` bị bake vào bundle browser. **Không** đặt secret vào các biến này.

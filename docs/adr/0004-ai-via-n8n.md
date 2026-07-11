@@ -4,7 +4,7 @@ Date: 2026-07-09
 
 ## Status
 
-Accepted
+Superseded in part (2026-07-11). Non-stream chat still follows this webhook boundary. Streaming chat intentionally uses a direct DeepSeek path with catalog RAG; the local `chat-webhook` also hosts read-only tool logic.
 
 ## Context
 
@@ -14,8 +14,9 @@ app services couples credentials, retries, and prompt experiments to deploy cycl
 ## Decision
 
 - `ai` service is a thin orchestrator: auth, rate limit, validation, HMAC, degrade.
-- LLM / automation logic lives in n8n workflows under `infra/n8n/workflows/`.
-- All `ai` → n8n calls use `X-Signature-SHA256` HMAC of the raw JSON body.
+- Non-stream LLM / automation logic lives in n8n or the compatible local `chat-webhook`.
+- Non-stream `ai` → webhook calls use `X-Signature-SHA256` HMAC over the exact serialized JSON bytes sent.
+- `/v1/chat/stream` shares the Redis rate limit, retrieves catalog context in parallel, and calls DeepSeek directly to preserve token streaming and client-abort propagation. It does not use the webhook or its tools.
 - When n8n is unavailable or `AI_DEGRADED_MODE=true`, return structured offline
   itineraries and chat replies (no 500).
 
@@ -30,6 +31,7 @@ app services couples credentials, retries, and prompt experiments to deploy cycl
 ### Negative
 
 - Operators must import/activate n8n workflows
+- Operators maintain two chat paths with different rate-limit, tool and persistence semantics
 
 ### Neutral
 

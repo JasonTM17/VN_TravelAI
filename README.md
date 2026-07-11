@@ -51,7 +51,7 @@
 | Global chatbot + AI itinerary (DeepSeek + RAG + tools + SSE) | COMPLETE path (key optional → degraded) |
 | Admin Meili reindex + vector reindex + audit | COMPLETE |
 | Responsive mobile web | COMPLETE (demo UX) |
-| Docker Compose multi-service · Hub + GHCR · Releases | COMPLETE tooling (publish may need billing/secrets) |
+| Docker Compose multi-service · GHCR private packages · Releases | COMPLETE; GHCR publish verified |
 
 ---
 
@@ -85,7 +85,7 @@ More assets: [`docs/media/`](docs/media/README.md) (gồm `05-explore`, `09-mobi
 - **Auth**: Ed25519 JWT + dual JWKS; refresh via **httpOnly cookie**; access token in memory (optional sessionStorage)
 - **Bookings**: hotel/tour/flight/transport; hotel **room type + rate plan**; night inventory; mock pay ledger
 - **Notifications**: booking-confirmed email via nodemailer SMTP, HTTP gateway, or log-only
-- **AI concierge**: chat SSE + itinerary via n8n/HMAC; **DeepSeek** when key set; **Meili + vector RAG**; read-only **tool-calling**; degraded fallback without key
+- **AI concierge**: SSE path = shared RL + **Meili/vector RAG** + direct DeepSeek; non-stream path = HMAC webhook + read-only tools; both degrade without live config
 - **Admin**: `/vi/admin` Meili reindex, vector reindex, audit log (`role=admin`)
 - **Mobile web**: responsive navbar, promo carousel, touch targets
 - **Containers**: multi-service Docker Compose · **Docker Hub** + **GitHub Packages (GHCR)** · tagged **Releases**
@@ -107,8 +107,10 @@ flowchart LR
   API --> Redis[(redis)]
   API --> Meili[(meilisearch)]
   Identity --> PG
-  AI --> ChatWebhook[chat-webhook / n8n]
+  AI -->|non-stream + HMAC| ChatWebhook[chat-webhook / n8n]
   ChatWebhook --> DeepSeek[DeepSeek API]
+  AI -->|stream + RAG| API
+  AI -->|direct SSE| DeepSeek
 ```
 
 | Service | Path | Host port (local overlay) | GHCR | Docker Hub |
@@ -183,9 +185,9 @@ Chi tiết AI: [`docs/ai/deepseek-chatbot.md`](docs/ai/deepseek-chatbot.md).
 | Model default `deepseek-v4-flash` | COMPLETE config |
 | Degraded fallback without key | COMPLETE |
 | SSE streaming (`POST /v1/chat/stream`) | COMPLETE path |
-| Meili + vector RAG | COMPLETE path |
-| Read-only tool-calling | COMPLETE path |
-| Chat conversation/message DB | COMPLETE path |
+| Meili + vector RAG | COMPLETE stream path; vector index requires admin reindex |
+| Read-only tool-calling | COMPLETE non-stream webhook path |
+| Chat conversation/message DB | COMPLETE path; client best-effort persistence |
 
 ---
 
@@ -212,7 +214,7 @@ npx --yes @redocly/cli@1 lint docs/openapi.yaml --config redocly.yaml
 cd e2e && pnpm test
 ```
 
-CI: unit, lint, build, OpenAPI, Trivy High/Critical và toàn bộ Playwright E2E đều hard-fail.
+CI: unit, lint, build, OpenAPI và toàn bộ Playwright E2E đều hard-fail. Image publish chỉ chạy khi CI, E2E, Trivy, CodeQL và Gitleaks cùng xanh cho đúng commit.
 Xem [`docs/testing/overview.md`](docs/testing/overview.md).
 
 ---
@@ -221,8 +223,8 @@ Xem [`docs/testing/overview.md`](docs/testing/overview.md).
 
 | Surface | Where |
 |---------|--------|
-| **Releases** | [github.com/JasonTM17/VN_TravelAI/releases](https://github.com/JasonTM17/VN_TravelAI/releases) — created by `.github/workflows/release.yml` on `v*` tags |
-| **Packages (GHCR)** | Repo → Packages, or `ghcr.io/jasontm17/travelai-{web,api,identity,ai}` |
+| **Releases** | [github.com/JasonTM17/VN_TravelAI/releases](https://github.com/JasonTM17/VN_TravelAI/releases) — latest verified `v0.2.0`; created by `.github/workflows/release.yml` on `v*` tags |
+| **Packages (GHCR)** | 4 private packages `ghcr.io/jasontm17/travelai-{web,api,identity,ai}`; verified tags `latest` + immutable SHA |
 | **Docker Hub** | `nguyenson1710/travelai-*` (needs repo secrets `DOCKERHUB_USERNAME` + `DOCKERHUB_TOKEN`) |
 
 ```bash
@@ -233,7 +235,7 @@ docker pull ghcr.io/jasontm17/travelai-identity:sha-<full-git-commit-sha>
 docker pull ghcr.io/jasontm17/travelai-ai:sha-<full-git-commit-sha>
 ```
 
-Publish flow: `ci` và toàn bộ Playwright E2E xanh trên `main` → `docker-publish` builds/pushes GHCR và Docker Hub khi credentials tồn tại. Production pin `IMAGE_TAG=sha-<full-git-commit-sha>`; không deploy bằng `latest`.
+Publish flow: E2E xanh trên `main` → workflow xác nhận CI + Trivy + CodeQL + Gitleaks xanh cho cùng commit → build/push GHCR (và Docker Hub nếu có credentials). Production pin `IMAGE_TAG=sha-<full-git-commit-sha>`; không deploy bằng `latest`. Release `v0.2.0` hiện chưa tạo semver image tags.
 
 ---
 
@@ -278,9 +280,9 @@ scripts/      Smoke, image audit, DeepSeek helpers
 | Live airline GDS / multi-vendor enterprise PMS | OUT_OF_SCOPE |
 | Native Flutter apps | OUT_OF_SCOPE |
 | Traveloka partner integration | OUT_OF_SCOPE |
-| RAG / tool-calling / SSE / chat DB | COMPLETE path |
+| RAG / tool-calling / SSE / chat DB | COMPLETE split paths; citations + server-owned memory remain residual |
 | Always-on CI e2e | COMPLETE (all Playwright specs hard-fail) |
-| Docker Hub/GHCR publish | Tooling COMPLETE; may need billing/secrets |
+| GHCR publish | COMPLETE; 4 private packages có `latest` + SHA tags |
 | Cloud production host | UNKNOWN |
 
 ---

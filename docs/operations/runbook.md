@@ -1,6 +1,6 @@
 # Operations runbook
 
-**Last verified:** `9f4d424`
+**Last verified:** `a796b94` (2026-07-11)
 
 ## 1. Health checks
 
@@ -63,6 +63,8 @@ After restore: Meili reindex (+ vector reindex if using semantic search).
 2. `docker compose … up -d`  
 3. Verify healthz + smoke  
 4. DB migrations: **không** assume auto-down; restore backup if schema incompatible  
+
+GHCR packages are private. Login with a package-read token before pull, then pin `sha-<full-git-commit-sha>` rather than `latest`; do not assume a GitHub release has a matching semver image tag.
 
 ## 8. DeepSeek toggle
 
