@@ -26,7 +26,7 @@
     "fastify": "^5.2.1",
     "ioredis": "^5.5.0",
     "jose": "^5.9.6",
-    "meilisearch": "^0.49.0",
+    "meilisearch": "^0.59.0",
     "nodemailer": "^9.0.3",
     "pino": "^9.6.0",
     "prom-client": "^15.1.3",
